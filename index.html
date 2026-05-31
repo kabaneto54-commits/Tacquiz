@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TacQuiz">
+<title>TacQuiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #12151a;
+    --surface2: #1a1e26;
+    --border: #2a2e38;
+    --accent: #c8a84b;
+    --accent2: #e8c96b;
+    --green: #4caf6f;
+    --red: #d45a5a;
+    --text: #e8e4d8;
+    --text2: #8a8880;
+    --text3: #5a5855;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; min-height:100vh; background:var(--bg); color:var(--text);
+    font-family:'Noto Sans JP',sans-serif; overflow-x:hidden; }
+  body { display:flex; flex-direction:column; }
+
+  .topbar { position:fixed; top:0; left:0; right:0; z-index:100; height:56px;
+    background:rgba(10,12,15,0.95); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; padding:0 16px; }
+  .topbar-logo { font-family:'Bebas Neue',cursive; font-size:26px; letter-spacing:3px; color:var(--accent); }
+  .icon-btn { width:36px; height:36px; border-radius:8px; background:var(--surface2);
+    border:1px solid var(--border); color:var(--text2); font-size:18px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+  .icon-btn:active { transform:scale(0.93); background:var(--border); }
+
+  .page { display:none; flex-direction:column; min-height:100vh; padding-top:56px; }
+  .page.active { display:flex; }
+
+  /* HOME */
+  .home-hero { padding:28px 20px 20px; border-bottom:1px solid var(--border); }
+  .home-hero h1 { font-family:'Bebas Neue',cursive; font-size:42px; letter-spacing:4px; color:var(--accent); line-height:1; }
+  .home-hero p { font-size:13px; color:var(--text2); margin-top:6px; letter-spacing:1px; }
+  .week-stats { margin:20px 20px 0; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:16px; display:flex; gap:16px; }
+  .stat-box { flex:1; text-align:center; }
+  .stat-num { font-family:'Bebas Neue',cursive; font-size:36px; color:var(--accent); line-height:1; }
+  .stat-label { font-size:11px; color:var(--text3); margin-top:2px; letter-spacing:0.5px; }
+  .stat-divider { width:1px; background:var(--border); }
+  .section-title { font-size:11px; letter-spacing:2px; color:var(--text3);
+    padding:20px 20px 10px; text-transform:uppercase; }
+  .category-list { padding:0 16px 80px; display:flex; flex-direction:column; gap:10px; }
+  .category-card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:16px; display:flex; align-items:center; gap:14px; cursor:pointer;
+    transition:all 0.2s; position:relative; overflow:hidden; }
+  .category-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--accent); opacity:0; transition:opacity 0.2s; }
+  .category-card:active { transform:scale(0.98); background:var(--surface2); }
+  .category-card:active::before { opacity:1; }
+  .cat-icon { width:46px; height:46px; border-radius:10px; background:var(--surface2);
+    border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
+    font-size:22px; flex-shrink:0; overflow:hidden; }
+  .cat-info { flex:1; }
+  .cat-name { font-size:15px; font-weight:700; letter-spacing:0.5px; }
+  .cat-desc { font-size:12px; color:var(--text2); margin-top:2px; }
+  .cat-score { text-align:right; }
+  .cat-score-num { font-family:'Bebas Neue',cursive; font-size:22px; color:var(--accent); }
+  .cat-score-label { font-size:10px; color:var(--text3); }
+  .cat-q-count { font-size:10px; color:var(--text3); margin-top:2px; }
+  .cat-chevron { color:var(--text3); font-size:14px; margin-left:4px; }
+
+  /* QUIZ */
+  #page-quiz { padding:0; }
+  .quiz-header { position:fixed; top:56px; left:0; right:0; z-index:90; background:var(--bg);
+    padding:12px 16px 10px; border-bottom:1px solid var(--border); }
+  .quiz-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .quiz-cat-label { font-size:11px; color:var(--accent); letter-spacing:2px; text-transform:uppercase; }
+  .quiz-counter { font-family:'Bebas Neue',cursive; font-size:18px; color:var(--text2); letter-spacing:1px; }
+  .progress-bar-wrap { height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; }
+  .progress-bar-fill { height:100%; background:var(--accent); transition:width 0.4s ease; border-radius:2px; }
+  .difficulty-tag { display:inline-block; font-size:10px; letter-spacing:1px;
+    padding:2px 8px; border-radius:4px; font-weight:700; }
+  .diff-easy { background:rgba(76,175,111,0.15); color:var(--green); border:1px solid rgba(76,175,111,0.3); }
+  .diff-mid  { background:rgba(200,168,75,0.15); color:var(--accent); border:1px solid rgba(200,168,75,0.3); }
+  .diff-hard { background:rgba(212,90,90,0.15); color:var(--red); border:1px solid rgba(212,90,90,0.3); }
+
+  .quiz-body { padding-top:130px; padding-bottom:20px; }
+  .question-wrap { padding:20px 16px 16px; }
+  .question-text { font-size:16px; line-height:1.7; font-weight:500; letter-spacing:0.3px; }
+  .choices-wrap { padding:0 16px; display:flex; flex-direction:column; gap:10px; }
+  .choice-btn { width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; display:flex; align-items:flex-start; gap:12px;
+    cursor:pointer; transition:all 0.2s; text-align:left; }
+  .choice-btn:active { transform:scale(0.98); }
+  .choice-num { width:26px; height:26px; border-radius:6px; flex-shrink:0;
+    background:var(--surface2); border:1px solid var(--border);
+    font-family:'Bebas Neue',cursive; font-size:15px;
+    display:flex; align-items:center; justify-content:center; color:var(--text2); }
+  .choice-text { font-size:14px; line-height:1.5; color:var(--text); padding-top:3px; }
+  .choice-btn.correct { border-color:var(--green); background:rgba(76,175,111,0.1); }
+  .choice-btn.correct .choice-num { background:var(--green); border-color:var(--green); color:#fff; }
+  .choice-btn.wrong { border-color:var(--red); background:rgba(212,90,90,0.1); }
+  .choice-btn.wrong .choice-num { background:var(--red); border-color:var(--red); color:#fff; }
+  .choice-btn.disabled { opacity:0.45; pointer-events:none; }
+  .explanation-wrap { margin:16px 16px 0; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; font-size:13px; line-height:1.7; color:var(--text2); display:none; }
+  .explanation-wrap.show { display:block; }
+  .explanation-title { font-size:11px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; text-transform:uppercase; }
+  .next-btn-wrap { padding:16px; display:none; }
+  .next-btn-wrap.show { display:block; }
+  .next-btn { width:100%; padding:16px; background:var(--accent); border:none; border-radius:12px;
+    font-family:'Bebas Neue',cursive; font-size:20px; letter-spacing:3px;
+    color:#0a0c0f; cursor:pointer; transition:all 0.2s; }
+  .next-btn:active { transform:scale(0.97); background:var(--accent2); }
+
+  /* RESULT */
+  #page-result { padding-top:56px; align-items:center; justify-content:center; }
+  .result-inner { width:100%; padding:20px; }
+  .result-score-ring { width:140px; height:140px; margin:0 auto 20px; border-radius:50%;
+    border:4px solid var(--border); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; position:relative; }
+  .result-score-ring svg { position:absolute; top:-4px; left:-4px; width:148px; height:148px; transform:rotate(-90deg); }
+  .result-score-ring circle { fill:none; stroke-width:4; }
+  .ring-bg { stroke:var(--surface2); }
+  .ring-fill { stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+  .result-score-num { font-family:'Bebas Neue',cursive; font-size:48px; color:var(--accent); line-height:1; position:relative; z-index:1; }
+  .result-score-denom { font-size:12px; color:var(--text3); position:relative; z-index:1; }
+  .result-cat-label { text-align:center; font-size:11px; letter-spacing:2px; color:var(--text2); text-transform:uppercase; margin-bottom:24px; }
+  .result-breakdown { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .breakdown-row { display:flex; justify-content:space-between; align-items:center;
+    padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .breakdown-row:last-child { border-bottom:none; }
+  .breakdown-label { color:var(--text2); }
+  .breakdown-val { font-weight:700; color:var(--text); }
+  .result-btns { display:flex; gap:10px; }
+  .result-btn { flex:1; padding:14px; border-radius:12px; border:1px solid var(--border);
+    font-family:'Bebas Neue',cursive; font-size:18px; letter-spacing:2px; cursor:pointer; transition:all 0.2s; }
+  .result-btn:active { transform:scale(0.97); }
+  .result-btn.primary { background:var(--accent); color:#0a0c0f; border-color:var(--accent); }
+  .result-btn.secondary { background:var(--surface); color:var(--text); }
+
+  /* STATS */
+  #page-stats { padding-top:56px; }
+  .stats-body { padding:16px; }
+  .stats-section-title { font-size:11px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin:16px 0 8px; }
+  .stats-week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px;
+    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; }
+  .week-day { text-align:center; }
+  .week-day-label { font-size:10px; color:var(--text3); margin-bottom:6px; }
+  .week-day-dot { width:28px; height:28px; border-radius:8px; margin:0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;
+    background:var(--surface2); color:var(--text3); border:1px solid var(--border); }
+  .week-day-dot.has-activity { background:rgba(200,168,75,0.2); color:var(--accent); border-color:var(--accent); }
+  .cat-stats-list { display:flex; flex-direction:column; gap:8px; margin-bottom:80px; }
+  .cat-stat-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .cat-stat-top { display:flex; justify-content:space-between; margin-bottom:8px; }
+  .cat-stat-name { font-size:14px; font-weight:700; }
+  .cat-stat-pct { font-family:'Bebas Neue',cursive; font-size:20px; color:var(--accent); }
+  .mini-bar-bg { height:4px; background:var(--surface2); border-radius:2px; overflow:hidden; }
+  .mini-bar-fill { height:100%; background:var(--accent); border-radius:2px; transition:width 1s ease; }
+  .cat-stat-sub { font-size:11px; color:var(--text3); margin-top:6px; }
+
+  .nav-bar { position:fixed; bottom:0; left:0; right:0; height:56px;
+    background:rgba(10,12,15,0.97); backdrop-filter:blur(12px);
+    border-top:1px solid var(--border); display:flex; }
+  .nav-item { flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:3px; cursor:pointer; transition:all 0.2s; color:var(--text3); }
+  .nav-item.active { color:var(--accent); }
+  .nav-item:active { opacity:0.7; }
+  .nav-icon { font-size:20px; }
+  .nav-label { font-size:10px; letter-spacing:1px; }
+  /* ── SPLASH ── */
+  #splash {
+    position:fixed; inset:0; z-index:9999;
+    background:#000;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  #splash.hide {
+    animation: splashOut 0.6s ease-in forwards;
+  }
+  @keyframes splashOut {
+    0%   { opacity:1; }
+    100% { opacity:0; pointer-events:none; }
+  }
+  .splash-grid {
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(0,255,70,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,70,0.04) 1px, transparent 1px);
+    background-size:32px 32px;
+    animation: gridPulse 2s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%,100% { opacity:0.5; }
+    50%      { opacity:1; }
+  }
+  .splash-scanline {
+    position:absolute; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, rgba(0,255,70,0.6), transparent);
+    animation: scan 1.8s linear infinite;
+  }
+  @keyframes scan {
+    0%   { top:-2px; }
+    100% { top:100%; }
+  }
+  .splash-noise {
+    position:absolute; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity:0.15; pointer-events:none;
+  }
+  .splash-corner {
+    position:absolute; width:24px; height:24px;
+    border-color:rgba(0,255,70,0.7); border-style:solid;
+  }
+  .splash-corner.tl { top:20px; left:20px; border-width:2px 0 0 2px; }
+  .splash-corner.tr { top:20px; right:20px; border-width:2px 2px 0 0; }
+  .splash-corner.bl { bottom:20px; left:20px; border-width:0 0 2px 2px; }
+  .splash-corner.br { bottom:20px; right:20px; border-width:0 2px 2px 0; }
+  .splash-status {
+    position:absolute; top:28px; left:50%; transform:translateX(-50%);
+    font-family:'Courier New',monospace; font-size:9px; letter-spacing:3px;
+    color:rgba(0,255,70,0.6); white-space:nowrap;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .splash-center { position:relative; z-index:2; text-align:center; }
+  .splash-tag {
+    font-family:'Courier New',monospace; font-size:10px; letter-spacing:4px;
+    color:rgba(0,255,70,0.5); margin-bottom:18px;
+    animation: fadeInUp 0.4s 0.3s ease both;
+  }
+  .splash-logo {
+    font-family:'Bebas Neue',cursive;
+    font-size:72px; letter-spacing:10px; line-height:1;
+    color:#fff;
+    text-shadow:
+      0 0 20px rgba(0,255,70,0.4),
+      0 0 60px rgba(0,255,70,0.15);
+    animation: logoIn 0.5s 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    clip-path: inset(0 100% 0 0);
+  }
+  .splash-logo.revealed {
+    animation: logoReveal 0.7s 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes logoReveal {
+    0%   { clip-path: inset(0 100% 0 0); }
+    100% { clip-path: inset(0 0% 0 0); }
+  }
+  .splash-sub {
+    font-family:'Courier New',monospace; font-size:9px; letter-spacing:5px;
+    color:rgba(0,255,70,0.45); margin-top:14px;
+    animation: fadeInUp 0.4s 1.3s ease both;
+  }
+  .splash-bar-wrap {
+    margin-top:40px; width:180px; height:2px;
+    background:rgba(0,255,70,0.15); position:relative; overflow:hidden;
+  }
+  .splash-bar-fill {
+    position:absolute; top:0; left:0; height:100%;
+    background:linear-gradient(90deg, rgba(0,255,70,0.3), #00ff46);
+    width:0%;
+    animation: barLoad 2.2s 0.8s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+  @keyframes barLoad {
+    0%   { width:0%; }
+    60%  { width:75%; }
+    90%  { width:92%; }
+    100% { width:100%; }
+  }
+  .splash-pct {
+    font-family:'Courier New',monospace; font-size:9px; letter-spacing:2px;
+    color:rgba(0,255,70,0.5); margin-top:8px;
+    animation: countUp 2.2s 0.8s steps(20) forwards;
+    opacity:0;
+  }
+  @keyframes countUp {
+    0%  { opacity:1; content:'000%'; }
+    100%{ opacity:1; }
+  }
+  .splash-lines {
+    position:absolute; bottom:40px; left:0; right:0;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .splash-line {
+    font-family:'Courier New',monospace; font-size:8px; letter-spacing:2px;
+    color:rgba(0,255,70,0.3); opacity:0;
+  }
+  .splash-line:nth-child(1) { animation: fadeInUp 0.3s 1.0s ease forwards; }
+  .splash-line:nth-child(2) { animation: fadeInUp 0.3s 1.3s ease forwards; }
+  .splash-line:nth-child(3) { animation: fadeInUp 0.3s 1.6s ease forwards; }
+  .splash-line:nth-child(4) { animation: fadeInUp 0.3s 1.9s ease forwards; }
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translateY(6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .splash-skip {
+    position:absolute; bottom:16px; right:20px;
+    font-family:'Courier New',monospace; font-size:9px; letter-spacing:2px;
+    color:rgba(0,255,70,0.3); cursor:pointer;
+    animation: fadeInUp 0.3s 1.5s ease forwards; opacity:0;
+  }
+  .splash-skip:active { color:rgba(0,255,70,0.8); }
+
+  .toast { position:fixed; bottom:70px; left:50%; transform:translateX(-50%);
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:10px 20px; font-size:13px; color:var(--text); z-index:300;
+    pointer-events:none; opacity:0; transition:opacity 0.3s; white-space:nowrap; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <div class="splash-grid"></div>
+  <div class="splash-scanline"></div>
+  <div class="splash-noise"></div>
+  <div class="splash-corner tl"></div>
+  <div class="splash-corner tr"></div>
+  <div class="splash-corner bl"></div>
+  <div class="splash-corner br"></div>
+  <div class="splash-status">SYSTEM BOOT...</div>
+  <div class="splash-center">
+    <div class="splash-tag">TACTICAL KNOWLEDGE SYSTEM</div>
+    <div class="splash-logo revealed">TACQUIZ</div>
+    <div class="splash-sub">COMBAT · RESCUE · TACTICS · MEDICINE</div>
+    <div class="splash-bar-wrap"><div class="splash-bar-fill"></div></div>
+    <div class="splash-pct" id="splash-pct">000%</div>
+  </div>
+  <div class="splash-lines">
+    <div class="splash-line">&gt; LOADING QUESTION BANK............OK</div>
+    <div class="splash-line">&gt; INITIALIZING CATEGORIES.........OK</div>
+    <div class="splash-line">&gt; VERIFYING TACTICAL DATA..........OK</div>
+    <div class="splash-line">&gt; SYSTEM READY</div>
+  </div>
+  <div class="splash-skip" onclick="dismissSplash()">SKIP ▶</div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-logo">TACQUIZ</div>
+  <div class="icon-btn" onclick="showPage('stats')">📊</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="home-hero">
+    <h1>TACTICAL<br>KNOWLEDGE</h1>
+    <p>COMBAT · RESCUE · TACTICS · MEDICINE</p>
+  </div>
+  <div class="week-stats">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-week-q">0</div>
+      <div class="stat-label">今週の挑戦問題数</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-week-acc">—</div>
+      <div class="stat-label">今週の正答率</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total-sessions">0</div>
+      <div class="stat-label">総セッション数</div>
+    </div>
+  </div>
+  <div class="section-title">カテゴリを選択</div>
+  <div class="category-list" id="category-list"></div>
+</div>
+
+<!-- QUIZ -->
+<div class="page" id="page-quiz">
+  <div class="quiz-header">
+    <div class="quiz-meta">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="icon-btn" style="width:30px;height:30px;" onclick="confirmQuit()">←</div>
+        <div class="quiz-cat-label" id="quiz-cat-label"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="difficulty-tag" id="diff-tag"></span>
+        <div class="quiz-counter" id="quiz-counter">1 / 10</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:10%"></div>
+    </div>
+  </div>
+  <div class="quiz-body" id="quiz-body">
+    <div class="question-wrap"><div class="question-text" id="question-text"></div></div>
+    <div class="choices-wrap" id="choices-wrap"></div>
+    <div class="explanation-wrap" id="explanation-wrap">
+      <div class="explanation-title">解説</div>
+      <div id="explanation-text"></div>
+    </div>
+    <div class="next-btn-wrap" id="next-btn-wrap">
+      <button class="next-btn" id="next-btn" onclick="nextQuestion()">次の問題 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="page" id="page-result">
+  <div class="result-inner">
+    <div class="result-cat-label" id="result-cat-label"></div>
+    <div class="result-score-ring">
+      <svg viewBox="0 0 148 148">
+        <circle class="ring-bg" cx="74" cy="74" r="70"/>
+        <circle class="ring-fill" id="ring-fill" cx="74" cy="74" r="70"
+          stroke-dasharray="439.82" stroke-dashoffset="439.82"/>
+      </svg>
+      <div class="result-score-num" id="result-score-num">0</div>
+      <div class="result-score-denom">/ 10問</div>
+    </div>
+    <div class="result-breakdown" id="result-breakdown"></div>
+    <div class="result-btns">
+      <button class="result-btn secondary" onclick="showPage('home')">ホーム</button>
+      <button class="result-btn primary" onclick="retryCategory()">もう一度</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="page" id="page-stats">
+  <div class="stats-body">
+    <div class="stats-section-title">今週の活動</div>
+    <div class="stats-week-grid" id="week-grid"></div>
+    <div class="stats-section-title">カテゴリ別成績</div>
+    <div class="cat-stats-list" id="cat-stats-list"></div>
+  </div>
+</div>
+
+<div class="nav-bar" id="nav-bar">
+  <div class="nav-item active" id="nav-home" onclick="showPage('home')">
+    <div class="nav-icon">🏠</div><div class="nav-label">ホーム</div>
+  </div>
+  <div class="nav-item" id="nav-stats" onclick="showPage('stats')">
+    <div class="nav-icon">📊</div><div class="nav-label">統計</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  QUESTION BANK  （各カテゴリ 35〜40問ストック）
+// ═══════════════════════════════════════════════════════════════
+const QUESTION_BANK = {
+
+// ─────────────────────────────────────────────────────────────
+firearms: [
+  {d:"初級",q:"セミオートマチック拳銃において、発射後に薬莢を排出し次弾を装填する動作を自動で行う機構は何か？",c:["ガス圧作動式","ショートリコイル（後坐利用）式","ロングリコイル式","ブローバック式","ロータリーボルト式"],a:1,e:"セミオート拳銃の大多数はショートリコイル方式を採用。スライドとバレルが短距離だけ共に後退し、その後バレルが停止してスライドのみが後退することで排莢・装填を行う。"},
+  {d:"初級",q:"グロック17の標準マガジン容量として正しいものはどれか？",c:["13発","15発","21発","19発","17発"],a:4,e:"グロック17は9×19mm弾を17発収納できるダブルスタックマガジンを採用。モデル番号「17」はこの装弾数に由来するとも言われる。"},
+  {d:"初級",q:"銃のセーフティを解除する操作を英語で何と呼ぶか？",c:["Engage the safety","Lock out","Safe on","Thumb the safety off","Fire lock"],a:3,e:"\"Thumb the safety off\" または \"disengage the safety\" と言う。セーフティをかける場合は \"engage the safety\" または \"put on safe\" と表現する。"},
+  {d:"初級",q:"AR-15系ライフルのボルトキャリアグループ（BCG）に含まれないパーツはどれか？",c:["ボルト","バレルナット","ガスキー","ファイアリングピン","エキストラクター"],a:1,e:"バレルナットはアッパーレシーバーにバレルを固定するためのパーツであり、BCGには含まれない。BCGはボルト・ボルトキャリア・ファイアリングピン・ガスキー・エキストラクター等で構成される。"},
+  {d:"初級",q:"「フィールドストリップ」とは何を指す用語か？",c:["射撃フィールドでの分解","完全分解（スモールパーツまで）","基本的な分解清掃のための最小限の分解","バレル交換作業","マガジン取り外し"],a:2,e:"フィールドストリップとは武器の基本的な清掃・点検のために行う最小限の分解のこと。完全分解（コンプリートディスアッセンブリ）とは区別される。"},
+  {d:"中級",q:"オープンボルト式とクローズドボルト式の最大の違いはどれか？",c:["発射レートと連射速度の差異","バレル長と有効射程の関係性","使用できる弾薬口径のサイズ規定","トリガーとシアの物理的な形状設計","発射時のボルト位置（前進中か閉鎖後か）"],a:4,e:"オープンボルト式はボルトが後退した状態で待機し、トリガーを引くと前進しながら装填・発射する。クローズドボルト式はボルトが閉鎖した状態で待機する。オープンボルトは連続発射時の冷却に優れるがセミオートの精度は劣る傾向がある。"},
+  {d:"中級",q:"ストライカーファイアード（Striker-Fired）方式の特徴として正しいものはどれか？",c:["外部ハンマーを持ち、コック&ロックが可能","DAOのみで、トリガープルが常に重い","内部ストライカーがトリガー操作で完全にコックされる","外部ハンマーが内部にある","マニュアルセーフティが必ず付いている"],a:2,e:"グロックやSIG P320等のストライカーファイアード方式は、外部ハンマーを持たず内部ストライカーが使用される。トリガーを引く動作でストライカーが完全にコックされ即座に発火する。一般的にトリガープルは中程度で一定。"},
+  {d:"中級",q:"「Tap, Rack, Bang（Assess）」とはどのような手順か？",c:["マガジン交換とリロードの標準手順","セーフティのオン・オフを確認するチェック手順","マルファンクション（不作動）クリアリングの基本手順","スコープのゼロインと倍率を調整する手順","チャンバー内の装填状態を確認する手順"],a:2,e:"マガジン底部をタップしてマガジンを確実に挿入（Tap）→スライドやボルトを引いて異物を排出（Rack）→目標に向け引き金を引く（Bang/Assess）。フィードマルファンクションやステーブジャムの基本クリアリング手順。"},
+  {d:"中級",q:"クローズドボルトセミオートライフルで「ダブルフィード」が起きた場合の正しいクリアリング手順は？",c:["Tap, Rackを2回繰り返せば大半のケースで自然に解消できる","専用のスラッキングツールでファイアリングピンを直接手動解放する","速やかにセーフティをかけてその場でアーモラーへ整備を依頼する","銃口を真下に向けながら銃全体を強く振って詰まりを解消する","マガジンをロックし、ボルトを複数回引いて排莢後、新マガジン装填"],a:4,e:"ダブルフィードはTap-Rackでは解消できない。①セーフティON ②マガジンリリースを押しながらマガジンを抜く（固着している場合あり） ③ボルトを2〜3回引いて薬室内の弾を排出 ④新マガジンを挿入してラック、の手順が必要。"},
+  {d:"中級",q:"AK-47のガス作動方式として正しいものはどれか？",c:["ショートストロークガスピストン","ロングストロークガスピストン","ダイレクトインピンジメント","ブローバック","ショートリコイル"],a:1,e:"AKシリーズはロングストロークガスピストン方式を採用。ガスポートから導かれたガス圧でピストンとボルトキャリアが一体となって後退する。汚れに強く信頼性が高い反面、重心が変化しやすい。"},
+  {d:"上級",q:"1911ピストルのサムセーフティはどのような機構で作動するか？",c:["スライドをロックする","バレルの回転を固定する","ファイアリングピンをブロックする","シアとハンマーの連動を物理的に遮断する","グリップセーフティと連動してのみ機能する"],a:3,e:"1911のマニュアルサムセーフティはシア（sear）を直接ブロックし、ハンマーがシアから外れる動作を遮断する。コック&ロック（Condition 1）での携帯を可能にする根幹機構。グリップセーフティと組み合わせて二重の安全を提供する。"},
+  {d:"上級",q:"「バッテリー（in battery）」という射撃用語の意味は？",c:["バッテリー（電池）切れ","マガジンが完全に挿入された状態","ボルトが完全に閉鎖し発射可能な状態","チャンバーに弾が装填された状態","グループ（集弾）の中心位置"],a:2,e:"\"In battery\" とはボルトやスライドが完全に前進・閉鎖し、正常に発射できる状態を指す。\"Out of battery\" はボルトが完全に閉鎖しておらず発射不可能な状態。Out of batteryでの発射は危険な事故につながる。"},
+  {d:"上級",q:"ガスオペレーテッドライフルにおける「ガスポートの位置」が弾道特性に与える主な影響は何か？",c:["弾速に影響する","弾丸の回転数に影響する","ガス圧の大きさと作動タイミングに影響する","マズルブラスト量に影響する","チャンバー圧に影響する"],a:2,e:"ガスポートをバレル先端に近づけるほど、ガス圧がかかるタイミングが遅くなり圧力も低下。バレル長が短いと必要ガス圧確保のためポートを手前に設定する必要がある。これが作動信頼性とサイクルレートに直結する。"},
+  {d:"初級",q:"ピストルのスライドストップ（スライドロック）が後退位置で固定される主なタイミングはいつか？",c:["マガジンを引き抜いてフォロワーが持ち上がったとき","最終弾を発射してマガジンが空になったとき","マニュアルセーフティを意図的にエンゲージしたとき","チャンバーチェックのためにボルトを引いた直後","新しいマガジンを挿入して完全に押し込んだとき"],a:1,e:"オートピストルはラストラウンドフォロワー（マガジン内の最終弾に押し上げられる突起）がスライドストップレバーを押し上げることでスライドが後退位置でロックされる。マガジンエンプティを射手に知らせる機能もある。"},
+  {d:"中級",q:"H&K MP5のローラーディレイドブローバック方式の特徴として正しいものはどれか？",c:["ガスポートが不要なためバレル周辺を非常にクリーンに保てる","9mmより高圧のライフル弾カートリッジには対応できない仕様である","セミオート機能を持たずフルオート動作のみに限定された設計である","ピストル同様のスライドを別途搭載する必要がある構造である","ロールバックがなくチャンバー圧が高い間はボルトが開かない"],a:4,e:"MP5が採用するローラーディレイドブローバックは、ボルトヘッド内の2つのローラーがチャンバー圧が高い間はハウジングにロックされ、圧力低下後にローラーが収縮してボルトが後退する。ガスポート不要でメンテが容易。"},
+  {d:"上級",q:"「マッチグレード」バレルが一般バレルと異なる主な点はどれか？",c:["ステンレス鋼製で耐腐食性が標準品より格段に高い素材を使用している","ライフリングの寸法精度・ホームポジション精度が極めて高い","ライフリングのツイストレートが通常品より速い設定に変更されている","チャンバーを意図的に大きくしてクリアランスを広げた余裕ある設計","重量が通常バレルより大幅に重くなっており剛性と安定性に優れる"],a:1,e:"マッチグレードバレルはライフリングと弾頭の接触具合・チャンバーの寸法公差を通常品より厳密に管理した精度品。クリアランスを最小化することで弾丸のセンタリングが向上し集弾性が高まる。競技射撃やスナイパーライフルに多用。"},
+  {d:"初級",q:"「チャンバーを確認する（Chamber Check）」を行う目的は何か？",c:["バレルの汚れを確認","クリーニングロッドの位置確認","マガジンの残弾数を確認","ガスポートの詰まりを確認","薬室に弾が装填されているか否かを確認"],a:4,e:"チャンバーチェックは薬室（チャンバー）に実弾が装填されているかを視覚・触覚で確認する安全操作。銃を受け取る際・収納する前・携帯開始前などに必ず行うべき基本動作。"},
+  {d:"中級",q:"FN SCARにおけるショートストロークガスピストン方式のAR-15（ダイレクトインピンジメント）に対する主な利点は何か？",c:["ガスピストンを省くため全体重量が大幅に軽量化される設計的優位性","部品点数が少ないため製造コストを大幅に低く抑えられる経済的利点","高熱ガスがボルトキャリアに直接かからずカーボン汚れが少ない","サイクルレートが上がり発射レートを高く維持できる作動特性","バレルが一体成型のため現場でのバレル交換が一切不要な構造"],a:2,e:"ダイレクトインピンジメント（DI）はガスが直接BCGに流れるためBCG内部にカーボンが蓄積しやすく熱も高くなる。ショートストロークピストン方式はガスをピストンで受けBCGには伝えないため清潔さと信頼性が向上する。"},
+  {d:"上級",q:"「ヘッドスペース」（Headspace）が過大な場合に起こりうる危険は何か？",c:["発射薬の燃焼効率が下がり弾速が大幅に低下して射程が短くなる","チャンバー寸法が不足して弾が薬室にスムーズに入らなくなる","薬莢が伸びすぎ破裂（ケースヘッドセパレーション）する危険がある","過剰な弾頭回転でライフリングの山が急速に摩耗・破損する","燃焼ガスがガスポートに逆流して詰まりと作動不良を引き起こす"],a:2,e:"ヘッドスペースとは薬莢底部からチャンバー基準面までの距離。過大だと発射時に薬莢が前方に押し出され伸びすぎ、薬莢底部が分離（ケースヘッドセパレーション）する危険がある。高圧ガスが後方に噴出し射手に重傷を負わせることがある。"},
+  {d:"初級",q:"ダブルアクションオンリー（DAO）拳銃の特徴として正しいものはどれか？",c:["初弾のみDAで発火し2発目以降は自動的にSAモードへ切り替わる設計","毎回のトリガー操作でハンマーをコックしながら発火する（常に重いトリガープル）","外部ハンマーを必ず装備しておりコック状態を目視で即座に確認できる","デコッカーと組み合わせたマニュアルセーフティを必ず標準装備している","コック＆ロック（コンディション1）で安全かつ即応可能な状態で携帯できる"],a:1,e:"DAOはトリガーを引くたびにハンマー（またはストライカー）をコックしながら発火するため常に同じ重めのトリガープルになる。安全性が高くシンプルな構造で法執行機関に採用例が多い。"},
+  {d:"中級",q:"ボルトアクションライフルで「コントロールドラウンドフィード（CRF）」方式の特徴は何か？",c:["弾がマガジンを完全に離れた後にエキストラクターが底部を掴む設計","プッシュフィード方式と比較して実用精度と信頼性が顕著に低下する","リムファイア弾の薬莢形状専用に設計されたリムファイア限定方式","ガス圧作動のセミオートシステムとの組み合わせでのみ機能する設計","ボルトが弾をマガジン出口からチャンバーまで常に制御しながら送る"],a:4,e:"CRFはボルトフェースのエキストラクターがマガジンから弾を拾った瞬間から薬室に収まるまで常に弾頭を制御する。逆さや斜めになった状態でも信頼性が高く、M70ウィンチェスターやモーゼル98系が代表例。"},
+  {d:"上級",q:"「トリガーリセット（Trigger Reset）」を活用した射撃技術の目的は何か？",c:["発射後にトリガーを完全に離さず、リセットポイントまでの最小移動で次弾発射を素早く行う","発射直後のフォロースルーにより弾道精度を安定して維持すること","タクティカルリロードでのマガジン交換速度を大幅に向上させること","グリップ角度を調整して体感的なリコイルを大幅に軽減させること","射撃後のセーフティ確認ルーティンを省略して時間を短縮すること"],a:0,e:"トリガーリセットとはトリガーを完全リリースせず、シアが再係合する「カチッ」という感触の位置（リセットポイント）まで戻すだけで次弾に備える技術。指の動き量を最小化でき、速射時の精度と速度が向上する。"},
+  {d:"初級",q:"拳銃の「ビーバーテールグリップセーフティ」は何のためについているか？",c:["リリースレバーを保護してマガジンの意図しない落下を防止する機構","フレーム結合部でバレルをレシーバーに確実に固定する構造部品","ハンマーバイト（ハンマーが手を噛む）防止と安全装置","フロントサイトの高さと左右位置を現場で微調整できる調整機構","スライドの後退動作を安定的にガイドするレールシステムの一部"],a:2,e:"ビーバーテールグリップセーフティは1911等に装備され、グリップをしっかり握った時のみ解除されるセーフティ機能と、スライドが後退した際に親指股部分をハンマーから保護する役割（ハンマーバイト防止）の両方を担う。"},
+  {d:"中級",q:"「フォースマルチプライアー」として銃のライトやレーザーを取り付けるレールシステムの標準規格は何か？",c:["NATO STANAG 4694","ARC（アーモラーレールシステム）","MIL-STD-810","MIL-STD-1913（ピカティニーレール）","ANSI Z87"],a:3,e:"MIL-STD-1913、通称ピカティニーレール（またはMILスペックレール）は米軍が制定した標準レール規格。スコープ・ライト・グリップポッド・レーザーなど各種アクセサリーを統一規格で着脱できる。"},
+  {d:"上級",q:"「クラウニング（Crowning）」とはバレルのどの部分に関する加工か？",c:["ライフリングの入口部分","バレルマズル端面の仕上げ加工","チャンバーの仕上げ","ガスポートの形状","チョーク部分"],a:1,e:"クラウニングはバレルのマズル（銃口）端面の仕上げ加工。弾頭がバレルを離れる瞬間に均一にガスが放出されるよう端面を正確に垂直かつ対称に仕上げる。クラウニングの精度が集弾性に直結する重要な加工。"},
+,
+{d:"初級",q:"GLOCK 45の特徴として正しいものはどれか？",c:["DA/SA方式の外部ハンマーを搭載したダブルアクション・シングルアクション機構","バレルが固定されたティルトしない設計で特に精密射撃を重視したモデル","45口径ACPのみ対応したシングルスタックマガジン採用の専用設計モデル","外部露出ハンマーを装備しコック状態を視覚と触覚で即座に確認できる設計","コンパクトスライド＋フルサイズフレームのクロスオーバーモデルで9×19mm対応"],a:4,e:"GLOCK 45はコンパクトサイズのスライドとフルサイズ（Gen5フレーム）を組み合わせたクロスオーバーモデル。9×19mm、17発マガジン対応。モスフィードポートやフレアードマグウェルを採用し扱いやすさを重視した設計。"},
+  {d:"初級",q:"GLOCKのセーフアクション（Safe Action）システムに含まれる3つのセーフティはどれか？",c:["グリップ圧感知・サムレバー・外部マニュアルの3系統セーフティ連動","スライドロック・バレルリンク・フレーム内ロッキングブロックの3機構","グリップ圧感知・トリガー連動・外部ハンマーロックの3機構連動","マニュアルレバー・ダブルアクション機構・ブロッキングプレートの3点","トリガーセーフティ・ファイアリングピンセーフティ・ドロップセーフティ"],a:4,e:"GLOCKのセーフアクションは①トリガーセーフティ（トリガー中央の小型レバー）②ファイアリングピンセーフティ（ファイアリングピンをブロック）③ドロップセーフティ（落下衝撃で誤発しない）の3系統。意図的なトリガー操作なしには発射されない設計。"},
+  {d:"中級",q:"GLOCK 17とGLOCK 19の主な違いはどれか？",c:["使用弾薬の口径と薬莢規格がそれぞれ完全に異なる独立した設計","G17はポリマーではなくアルミ合金フレームを採用した重量モデルである","G19はDA/SA方式の外部ハンマーを装備したダブルアクション式である","G17はフルサイズ（バレル4.49インチ・17発）、G19はコンパクト（バレル4.02インチ・15発）","G19はG17より長い延長スライドを備えたロングスライドバリアントである"],a:3,e:"G17はフルサイズサービスピストルでバレル長114mm・標準17発マガジン。G19はコンパクトモデルでバレル長102mm・15発マガジン。G19はG17マガジンとの互換性があり、民間・法執行機関ともに広く普及している。"},
+  {d:"中級",q:"GLOCK 45がFBI・CBPなどの機関に評価された理由として最も適切なものはどれか？",c:["外部ハンマーの有無でコック状態を即座に目視確認できて安全管理が容易","交換不要な固定サイトのみ対応で現場での調整作業が一切不要な点","他社モデルと比較して調達・維持コストが圧倒的に低く経済的である点","標準ラインナップに.40S&Wバリアントが含まれており弾薬の選択肢が広い","フルサイズの握りやすさとコンパクトスライドによる携帯性・抜銃のしやすさを両立"],a:4,e:"G45のクロスオーバーコンセプトは、フルサイズフレームによる射撃安定性・マガジン容量の維持と、短いスライドによるホルスターからの抜銃のしやすさ（スナッギングの低減）を同時に実現しており、執行機関から高評価を得た。"},
+  {d:"初級",q:"SIG SAUER P226の作動方式として正しいものはどれか？",c:["ダブルアクション/シングルアクション（DA/SA）外部ハンマー式","内部ストライカーのみで作動する外部ハンマーなしのストライカーファイアード","毎回同一の重いトリガープルで発火するダブルアクションオンリー（DAO）","1911系と同様に常に軽いSAトリガーのシングルアクションオンリー（SAO）","水平方向に回転するロータリーストライカー機構を搭載した特殊方式"],a:0,e:"P226はDA/SA方式で外部ハンマーを持つ。初弾はDAで重いトリガープル、2発目以降はハンマーがコックされた状態でSAの軽いトリガープルになる。マニュアルセーフティは持たず、デコッキングレバーでハンマーを安全に落とす設計。"},
+  {d:"初級",q:"SIG P226の標準フレーム素材（初期モデル）はどれか？",c:["ポリマー","カーボンファイバー","スチール","チタン","アルミニウム合金（アロイフレーム）"],a:4,e:"P226はアルミニウム合金のレシーバー（フレーム）を採用。ポリマーフレームのGLOCKより重いが剛性と手への馴染みが良い。現在はE2グリップや各種バリアントが多数存在する。米海軍SEALsが長年採用してきたことでも有名。"},
+  {d:"中級",q:"SIG P226とP229の主な違いはどれか？",c:["両モデルは互いに完全に異なる弾薬規格を採用した独立した専用設計","アルミフレームのP226はP229より大幅に軽量で長時間の携帯に有利である","P229はストライカー式で外部ハンマーを搭載しない内部機構を採用している","P229はコンパクトフレームで.357SIG/.40S&W/.9mmに対応、スライドはマシニング製","P229はフルサイズフレームのみで小型化・コンパクト化バリアントは存在しない"],a:3,e:"P229はP226より小型のコンパクトフレームで、スライドが鍛造から削り出しのマシニングスライドに変更されている。9mm/.357SIG/.40S&Wに対応。特に.40S&Wは高圧弾薬のためP229の頑丈なスライドが必要とされた。"},
+  {d:"中級",q:"SIG P226のデコッキングレバーの機能として正しいものはどれか？",c:["マニュアルセーフティと同様にトリガーを物理的にロックして発射を不可にする","コックされたハンマーをファイアリングピンに触れないよう安全に前進させDAポジションに戻す","スライドを後退位置でロックしてチャンバーアクセスを容易にする機構","ボタン操作でマガジンをフレームから完全に解放・排出させる機構","専用ブロックがファイアリングピンを物理的に遮断して誤発射を防止する"],a:1,e:"デコッキングレバー（デコッカー）はハンマーをコックした状態から、ファイアリングピンブロックを介して安全にハンマーを前進させてDAポジションに戻す機構。次のトリガー操作はDAになる。マニュアルセーフティとは異なりトリガーをロックしない。"},
+  {d:"上級",q:"SIG P226 MK25（米海軍SEALs採用モデル）の特別仕様として正しいものはどれか？",c:["3点バースト・フルオートの切替可能なセレクター付きフルオートモードを搭載","軽量で高耐衝撃性のカーボンファイバー製グリップパネルを採用している","軽量かつ高耐食性のチタン合金バレルを特別仕様として採用している","30発対応の延長マガジンと専用タクティカルホルスターをデフォルト装備","アンカーラグ付きレイルとリン酸塩処理（パーカライズド）仕上げ・トリチウムナイトサイト装備"],a:4,e:"MK25はSEALsの要求に応えたP226バリアント。ピカティニーレール（アンダーレイル）付き、耐腐食性のリン酸塩マンガン処理、SIGLITEトリチウムナイトサイト、および1913レイルを標準装備。海水環境での信頼性も考慮されている。"},
+  {d:"初級",q:"H&K MP5の作動方式はどれか？",c:["ガスオペレーテッド ショートストローク","ダイレクトインピンジメント","ローラーディレイドブローバック","ロングリコイル","ブローバック（単純）"],a:2,e:"MP5はローラーディレイドブローバック方式を採用。ボルトヘッドの2つのローラーがチャンバー圧が高い間はハウジングにロックされ、圧力低下後にローラーが収縮してボルトが後退する。ガスポート不要でクリーンな作動。"},
+  {d:"初級",q:"H&K MP5が採用する弾薬はどれか？",c:["9×19mm","5.56×45mm","4.6×30mm",".45ACP",".40S&W"],a:0,e:"MP5は9×19mmパラベラム弾を使用するサブマシンガン。1960年代にH&Kが開発し、世界中の法執行機関・特殊部隊に採用された。クローズドボルトで動作するため精度が高く、セミオート・バースト・フルオートの各バリアントがある。"},
+  {d:"中級",q:"MP5のバリアントで「MP5SD」の「SD」が意味することと特徴はどれか？",c:["Special Duty（特殊任務対応）仕様を表す英語略称で静粛化機能とは無関係","Super Dual（二連バレル）構造を採用した2本バレル並列の特殊仕様モデル","Schalldämpfer（独：消音器）の略で、バレルに穴を空けてインテグラルサプレッサーを内蔵","Special Direct（ガス直接作動）方式への変更を表す改良アクション仕様","Short Derringer（超短縮）コンセプトで最小化を追求したコンパクト仕様"],a:2,e:"MP5SDはドイツ語でSchalldämpfer（消音器）の略。バレルにガス放出孔を設けて弾速を亜音速以下に落とし、インテグラル（一体型）サプレッサーを組み合わせることで標準弾薬でも静粛射撃を実現する。"},
+  {d:"中級",q:"MP5シリーズの中でMP5Kの特徴はどれか？",c:["650mm超の長バレルを採用した精密射撃・遠距離狙撃に特化した仕様","セミオートを廃してフルオート動作のみに特化した射撃モード限定仕様","コンパクトな超短型で前部グリップを持ちVIP警護・近距離用途向け",".40S&W専用のマガジンと薬室を採用したスミス&ウェッソン弾対応仕様","フロントグリップ内部にレーザーサイトを一体内蔵した特殊装備モデル"],a:2,e:"MP5K（Kurz＝ドイツ語で「短い」）はMP5の超短縮版。バレル長115mm、全長325mmで非常にコンパクト。前部垂直グリップを装備しVIP警護・車内・近接作戦向け。ブリーフケース型ホルスターから発射できる特殊仕様も存在する。"},
+  {d:"上級",q:"MP5が現代のサブマシンガン市場でも競争力を保てる理由として最も適切なものはどれか？",c:["同カテゴリのSMG・PDWの中で最も低い調達コストを継続して実現している","同クラスのサブコンパクト全機種の中で最軽量クラスの重量を達成している","クローズドボルトによる高精度・ローラーディレイドの信頼性・豊富なアクセサリーエコシステム","現行ラインナップで最大の装弾数と拡張マガジン対応を標準で備えている","最新製造技術とモダンなデザイン言語を採用した最も現代的な外観を持つ"],a:2,e:"MP5はオープンボルトSMGより精度の高いクローズドボルト設計、実績あるローラーディレイド信頼性、世界中で蓄積された訓練・整備ノウハウを持つ。FN P90やMP7に押される場面もあるが特殊部隊・法執行機関での根強い採用が続く。"},
+  {d:"初級",q:"H&K MP7の使用弾薬として正しいものはどれか？",c:["9×19mm","5.56×45mm","4.6×30mm",".45ACP","7.62×51mm"],a:2,e:"MP7は4.6×30mm弾を使用するH&K製PDW（個人防衛火器）。MP5の後継としてNATOのPDW要求（アーマー貫通・小型・軽量）に応えて設計。"},
+  {d:"中級",q:"MP7の4.6×30mm弾がNIJレベルIIIAソフトアーマーを貫通できる主な理由はどれか？",c:["弾頭直径が細いという物理的サイズの小ささだけが貫通力の唯一の源泉","特殊コーティングを施したライフリングが命中時の貫通エネルギーを増幅する","弾薬内部に封入した特殊爆発成分が命中時に起爆して貫通力を発揮する","高硬度スチールコア弾頭と高初速（約725m/s）の組み合わせ","命中後に弾頭が前後に分離して複数のフラグメントがアーマーを貫通する"],a:3,e:"4.6×30mmAP弾（DM11等）はスチールコア弾頭と高初速（約725m/s）によりソフトアーマーの繊維を貫通する。通常のピストル弾では繊維が弾頭を捕捉するが、小径・高速・高硬度の組み合わせが防弾素材の変形捕捉メカニズムを突破する。"},
+  {d:"中級",q:"MP7のユニークな携帯特性として正しいものはどれか？",c:["銃身を折り畳んでコンパクト化できる折り畳み式バレル機構を内蔵している","水深5mまでの水中射撃に対応した防水仕様・水中作動認定を取得している","スナイパー向けのバイポッドを標準装備し安定した伏射姿勢での射撃が可能","50発容量のドラムマガジンを標準サポートし長時間の連続戦闘に対応できる","ストックとフォアグリップを展開することでライフル的な両手射撃が可能で、収納時はピストル同様ホルスター携帯できる"],a:4,e:"MP7はリアストックを折り畳み、フォアグリップを格納した状態ではピストルサイズ。ストック展開・フォアグリップ展開で安定したライフル射撃ポジションが取れる。ドライバーやパイロット等の二次武器としても機能する設計。"},
+  {d:"上級",q:"MP7とFN P90のPDWコンセプト競争においてNATOが単一標準弾を制定しなかった主な理由はどれか？",c:["性能試験で両弾が完全同等のスコアを記録して優劣を決定できなかったから","各国の既存装備・ロジスティクス・政治的・産業的利害が調整できなかったため","FN P90と5.7×28mm弾がすべての評価項目で明確な優位を示したから","H&KがMP7の量産体制を整備できず事実上の生産中止に追い込まれたから","両弾薬とも実戦使用で重大な安全上の欠陥が発覚し採用が見送られたから"],a:1,e:"NATOはPDW標準弾（4.6mmか5.7mmか）の選定を試みたが、各加盟国のメーカー利益・既存装備との互換性・訓練コスト・政治的配慮が絡み合い単一標準化に至らなかった。結果として両弾薬が並存したまま現在に至る。"},
+  {d:"初級",q:"SIG SAUER SIG516の作動方式はどれか？",c:["ローラーディレイドブローバック","ダイレクトインピンジメント（DI）ガスオペレーテッド","ロングストロークガスピストン","ショートストロークガスピストン","ブローバック"],a:3,e:"SIG516はAR-15プラットフォームをベースにしたSIG SAUERのライフルで、ダイレクトインピンジメント（DI）ガスオペレーテッド方式を採用。5.56×45mm弾を使用し、MIL-STD-1913ピカティニーレール・折り畳みストックを装備。"},
+  {d:"中級",q:"SIG516がAR-15/M16系と共通性を持つ主なメリットはどれか？",c:["M16系のマガジン・スペアパーツ・アクセサリーとの高い互換性","ガスピストン方式を採用しDI方式より高い信頼性を発揮するという利点","独自規格の専用弾薬を採用しており汎用弾との互換性がない点","レシーバーからバレルまで完全にアルミ合金のみで製造されている点","ボルトを必要としない独自閉鎖機構を採用した革新的な作動設計"],a:0,e:"SIG516はSTANAG（M16系）マガジンとの互換性を持ち、多数の既存AR-15系アクセサリー・スペアパーツが流用できる。軍・法執行機関の既存ロジスティクスとの親和性が高く、訓練の継続性も維持しやすい。"},
+  {d:"中級",q:"SIG MCXとSIG516の最大の違いはどれか？",c:["MCXは5.56mmのみで516は.308WINにも対応するなど弾薬規格が異なる点","MCXは軍・法執行機関専用で一般民間市場への販売が完全に禁止されている","MCXもAR-15と同一のダイレクトインピンジメント（DI）方式を踏襲している","MCXのロアレシーバーはAR-15系と完全非互換の独自設計を採用している","MCXはショートストロークガスピストン採用・折り畳みストック・モジュラー設計で複数口径に対応"],a:4,e:"SIG MCXはSIG516のDI方式から脱却しショートストロークガスピストンを採用。折り畳み式ストック、モジュラーバレルシステムで5.56mm/.300BLK/7.62×39mmの口径変更に対応。USSOCOM採用のMCXスペアも存在する。"},
+  {d:"上級",q:"SIG516のガス調整式ガスブロック（Adjustable Gas Block）の利点はどれか？",c:["サプレッサー使用時のオーバーガス問題を調整でき、各種弾薬・環境に対応した最適な作動を維持できる","ガス流量を精密に調整することで各弾薬の初速と弾速を任意に変更できる","ガス圧を高めることで有効射程と平坦な弾道特性を大幅に延長できる","軽量なアルミ製ガスブロックを選択して銃全体の重量を大幅に削減できる","マガジン内のガス解放量を調整してフィーディング可能な弾数を変更できる"],a:0,e:"調整式ガスブロックはサプレッサー取り付け時に増加するガス圧（バックプレッシャー）を絞り、BCGへの過剰ガス流入を防ぐ。弾薬の種類・気温・汚れによる作動変化にも対応でき信頼性と耐久性を維持できる。"},
+  {d:"初級",q:"GLOCK Gen5の主な改良点として正しいものはどれか？",c:["Gen4からの最大変更点として外部ハンマーとデコッカーを新たに追加した","ダブルスタックからシングルスタックマガジンへ変更してグリップを細型化した","標準装備だった固定式サイトを廃止して別売りサイト専用に変更した","9mm以外の口径を廃止して.45ACP弾のみの単一口径専用モデルに変更した","アンビマガジンリリース・フレアードマグウェル・改良バレル（マルクスマンバレル）・フィンガーグルーブ廃止"],a:4,e:"Gen5ではアンビマガジンリリースボタン（左右両対応）、フレアードマグウェル（マガジン挿入の高速化）、精度向上のマルクスマンバレル（ポリゴナルライフリング改良）、賛否あったフィンガーグルーブの廃止が主な変更点。"},
+  {d:"中級",q:"GLOCKのポリゴナルライフリング（Polygonal Rifling）の特徴はどれか？",c:["台形または六角形の山が弾を包むように接触し初速向上・バレル寿命延長・清掃容易化を実現","従来の角溝ライフリングより深い溝を彫って弾頭への食い込みを大幅に強化する","他社バレルよりライフリングのツイストレートを意図的に遅く設定している","耐腐食性の高いステンレス鋼バレルにのみ適用可能な特殊加工技術である","鋳造製法でのみ製造可能でコールドハンマーフォージングには非対応である"],a:0,e:"GLOCKのポリゴナルライフリングは角溝ではなく多角形断面のバレルボアで弾頭を包み込むように回転させる。弾頭とバレルの接触面積が広く初速がわずかに向上し、バレル摩耗が少なく寿命が長い。鉛むき出し弾（裸鉛）の使用は推奨されない。"},
+  {d:"中級",q:"SIG P226とGLOCK 17を使い勝手の観点で比較した場合の正しい説明はどれか？",c:["G17はDA/SA機構のため初弾の発射準備に特に重いトリガープルが必要になる","P226はアルミフレームを採用しポリマーフレームのG17より大幅に軽量である","P226は初弾から最終弾まで常にシングルアクションのみで動作し続ける","G17はマニュアル・グリップ・トリガーの3種類のセーフティを装備している","P226はDA/SAで初弾の射撃準備は要らないがトリガーが重く、G17はストライカー式で常に一定のトリガープルで操作が統一されている"],a:4,e:"P226のDA/SA方式は初弾にDAの重いプルが必要で訓練コストが高い一方、コックされた状態が外見からわかる。G17のセーフアクションは常に同じ中程度のプルで操作が統一しやすく、特に複数名が使い回す組織に向く。"},
+  {d:"上級",q:"MP5からMP7への移行が特殊部隊で進んだ最大の戦術的理由はどれか？",c:["現代の戦場でソフトアーマー着用の敵が増加し9mmFMJでは対処困難になったため、アーマー貫通力を持つPDWが必要とされた","MP7の調達コストがMP5より大幅に安く費用対効果に非常に優れているため","MP7にはインテグラルサプレッサーが標準装備されMP5より静粛性が高いため","H&KがMP5の製造を終了して後継機種への全面移行を各国に正式通知したため","MP7の標準マガジンは40発でMP5の30発を大きく上回る携行弾数を誇るため"],a:0,e:"1990年代以降、テロリスト・武装犯罪者・戦場の敵がソフトアーマーを着用する事例が増加。9×19mmFMJはNIJ IIA/IIAクラスのアーマーを貫通できない。4.6×30mm APはこの問題を解決するために開発され、PDWの役割再定義につながった。"},
+  {d:"中級",q:"H&K MP5の「トリ（Tri）ルール」と呼ばれるトリガーグループ識別方法の「トリ（三）」が指すものはどれか？",c:["3本のバレルを同時装填できる多銃身並列システムを採用した特殊仕様","3種類の作動モード（セーフ・セミ・フルまたはバースト）に対応したセレクターグループの選択","3点バーストのみに特化してセミ・フルオートを廃した限定作動仕様","近・中・遠距離に対応する3段階切り替え式フリップアップサイト搭載","弾薬送りを3段階に分けて行うトリプルフィードシステムの信頼性向上機構"],a:1,e:"MP5のトリガーグループはセレクターの設定によりセーフ・セミ・フルオートまたは2/3連バーストなど異なるモードに対応した複数のトリガーパックが存在する。グループ外観（色・刻印・ピン数）で判別する現場識別法がある。"},
+  {d:"初級",q:"SIG SAUER P320の特徴でGLOCKと最も異なる点はどれか？",c:["ストライカーファイアード方式を採用しているというGLOCKと同一の基本設計","FCU（ファイアコントロールユニット）が独立したモジュールで、グリップ・サイズ・口径変更が容易","高強度ポリマーをフレームに採用し軽量かつ高耐衝撃性を実現している点","ダブルスタックマガジンにより同サイズ比でG17より多い装弾数を実現する点","フレーム下部にピカティニーレールを標準装備しライトやレーザーを装着できる点"],a:1,e:"P320はFCU（シリアル番号が刻まれた内部ユニット）が取り出し可能なモジュール設計。フレームサイズ（コンパクト〜フル）や口径（9mm/.40/.357SIG/.45ACP）をFCU流用で変更できる。米陸軍のM17/M18として採用。"},
+],
+
+// ─────────────────────────────────────────────────────────────
+sniper: [
+  {d:"初級",q:"スナイパーが射撃前に行う「DOPE（Data On Previous Engagements）」とは何か？",c:["目標の行動パターンや個人識別情報を収集・記録する情報ノートのこと","使用スコープのメーカー名・モデル・シリアル番号を管理する台帳","携行装備の品番・重量・状態を管理するための装備チェックリスト","以前の射撃で得た弾道データ（距離・風・調整値）の記録","射撃終了後に着弾孔の位置と散布界をデジタル記録する確認シート"],a:3,e:"DOPEとはスナイパーが蓄積した弾道データの記録帳。特定の弾薬・銃・条件下での距離ごとのMOA/ミル調整値、風偏差、温度補正値等を記録しておく。精密射撃においてDOPEの精度が命中率を左右する。"},
+  {d:"初級",q:"スコープの「ターレット」とは何か？",c:["対物レンズの収差を補正するコーティングの種類と光学性能を示す数値","視度と目とレンズ間の距離を調整するアイリリーフ機能付きの調整リング","スコープをレシーバーレイルに固定するためのリングマウント金具部品","エレベーション・ウィンデージを調整するダイヤルノブ","サイドフォーカスまたはAOのパラレックスを補正するためのフォーカスノブ"],a:3,e:"ターレットはスコープ上部（エレベーション）と側面（ウィンデージ）にある調整ノブ。クリック単位（1クリック＝0.1ミル or 1/4MOA等）で着弾点を上下左右に調整する。"},
+  {d:"初級",q:"「MOA（Minute Of Angle）」はおよそ何センチ/100mか？",c:["約2cm（2.908cm）","約1cm","約5cm","約10cm","約0.5cm"],a:0,e:"1MOAは角度の1/60度で、100mで約2.908cm（≒1インチ）に相当する。スコープの調整値やグルーピングのサイズを表すのに広く使われる単位。"},
+  {d:"初級",q:"「ミル（Mil/mRad）」を使った距離計算の基本式として正しいものはどれか？",c:["距離(m)＝目標サイズ(m)÷ミル数","距離(m)＝目標サイズ(m)×ミル数×1000","距離(m)＝目標サイズ(cm)×ミル数","距離(m)＝ミル数÷目標サイズ(m)","距離(m)＝目標サイズ(m)÷ミル数×1000"],a:4,e:"ミルレンジング公式：距離(m)＝目標サイズ(m)÷ミル読取値×1000。例えば1.8mの人物がスコープで3.6ミルに見えるなら 1.8÷3.6×1000＝500m。"},
+  {d:"中級",q:"「スピンドリフト」とはどのような現象か？",c:["強い横風が弾道に作用して弾が風下方向へ継続的に流される風偏差現象","亜音速域に入った弾頭が空気抵抗の変化で不安定化し散布界が拡大する現象","地球の自転速度と弾の飛翔時間の積で生じるコリオリ効果による弾道ずれ","ライフリングによる弾丸の回転が原因で弾が螺旋方向にドリフトする現象","地面や壁面に当たった弾が予測不能な角度で跳ね返るリコシェ（跳弾）現象"],a:3,e:"スピンドリフトとは弾丸のジャイロスコープ的回転（スピン）によって弾が飛行中に少しずつ横方向にずれていく現象。右回転（右ライフリング）では弾は右にドリフトする。長距離では無視できない補正要素になる。"},
+  {d:"中級",q:"「コリオリ効果」が弾道に影響を与えるのはどのような条件か？",c:["100m以下の近距離射撃","1000m超の超長距離射撃","強い横風がある場合","標高1000m以上の高地","夜間射撃"],a:1,e:"コリオリ効果は地球の自転による偽の力。弾道への影響は距離と飛翔時間に比例するため、1000m超の極長距離射撃では北半球では右方向（南半球では左）への補正が必要になる。一般的な戦術距離では無視できる。"},
+  {d:"中級",q:"「密度高度（Density Altitude）」が弾道に与える影響は何か？",c:["気温・気圧・湿度が低い（空気が薄い）ほど空気抵抗が減り弾は遠くへ飛ぶ","湿度が高くなると水蒸気により空気密度が増加して弾速が大幅に上昇する","標高が高くなるほど気圧が上昇して空気抵抗が増加し弾速が顕著に低下する","密度高度が上昇すると横風の影響が直線的に増大して風修正量が増える","気温変化によって発射薬の体積が膨張し弾頭の実質的な質量が増加する"],a:0,e:"空気密度が低い（高温・低気圧・低湿度）環境では空気抵抗が減少し弾道がフラットになる。高地での射撃では低地と同じ距離でも弾着がhighになるため調整が必要。"},
+  {d:"中級",q:"スナイパーの「ラック・ファクター（Luck Factor）」とも呼ばれる、風の読みを正確にするために観察する項目でないものはどれか？",c:["ミラージュ（逃げ水）の流れ","草木の揺れ","地面の影の動き","旗のはためき","水面の波紋"],a:2,e:"ミラージュ・草木・旗・水面・煙・塵などは風速・風向の観察に使われる。「地面の影の動き」は太陽光の角度変化や雲の動きを示すが風の指標としては一般的に使われない。"},
+  {d:"中級",q:"「バリスティックコエフィシェント（BC）」の値が高い弾頭の特徴は何か？",c:["弾頭素材が軽く全体重量を大幅に抑えた軽量設計の弾頭であることを示す","大口径で断面積が広くエネルギー伝達量が大きな拡張型弾頭を指す値","空気抵抗を受けにくく遠距離での速度保持が良い","先端に凹みを持つホローポイント構造の弾頭にのみ適用される専用指標","高圧ロードによる高初速が維持されてチャンバー圧が規格上限を超えている"],a:2,e:"BCは弾頭が空気抵抗に対してどれだけ抵抗するかの指標。BC値が高いほど長細く先鋭的な弾頭（BTHP・VLDなど）で、遠距離での速度保持・弾道保持に優れる。"},
+  {d:"上級",q:"「超音速から亜音速への遷移ゾーン」がスナイパーにとって問題になる理由は何か？",c:["遷移ゾーン通過時に弾薬内の圧力が急上昇して弾速が一時的に増加する","音速突破時の衝撃波でチャンバーへの反動が急増してスコープがずれやすい","気温と空気密度の急変でスコープのレンズ内部が結露して視界が曇る","弾丸が音速の壁を通過する際に弾頭の安定性が一時的に乱れ着弾精度が落ちる","遷移ゾーンでの圧力変化が作動に負担をかけて薬莢が詰まりやすくなる"],a:3,e:"弾丸が超音速（Mach1超）から亜音速（Mach1未満）に移行する距離付近で、衝撃波のパターンが変化し弾頭が一時的にヨー（横揺れ）を起こす。この遷移ゾーンで目標を狙う設定は避けるのが基本。"},
+  {d:"上級",q:"スナイパーが「コールドショット（Cold Shot）」を特に重視する理由は何か？",c:["バレルが冷えた状態では燃焼効率が落ちて弾速が大幅に低下するから","冷えたバレルから最初に放たれる弾は、温まったバレルからの弾と着弾点がわずかに異なる場合があるため","極低温環境では雷管と発射薬の化学反応が不安定になり暴発リスクがあるから","急激な温度差でスコープのガラスレンズが結露して射撃前の視界が失われるから","冷えたBCGの金属摩擦が増大して初弾でチャンバー詰まりが生じやすいから"],a:1,e:"バレルが冷えた状態の初弾はバレル温度が安定した後の弾と着弾点が数センチ〜数十センチずれることがある。実戦では「コールドショット」が事実上唯一のチャンスになることが多いため、コールドバレルでの弾道を把握しておくことが不可欠。"},
+  {d:"初級",q:"スコープの「アイリリーフ（Eye Relief）」とは何か？",c:["スコープを見るための目とレンズの適切な距離","接眼レンズの外径サイズでマウントリング選定の基準となる直径の数値","反射防止・撥水・防曇など光学性能を決めるレンズ表面コーティングの種類","スコープの最低から最高までの可変倍率の幅を示すズームレンジの数値","スコープ本体のチューブ外径でマウントリングサイズ選定の基準となる値"],a:0,e:"アイリリーフとはスコープを明確に視認できる目とレンズの距離範囲。ライフルでは発射時の反動でスコープが後退するため十分なアイリリーフが必要。不足するとスコープが眉に当たる「スコープアイ」の怪我につながる。"},
+  {d:"中級",q:"「FFP（ファーストフォーカルプレーン）スコープ」の特徴はどれか？",c:["どの倍率でもレティクルのサブテンションが正確でミルレンジングができる","低倍率時のみレティクルが正確で高倍率にするとサブテンションに誤差が生じる","全倍率でレティクルが非常に大きく見えて精密な細部確認が困難になる","倍率変更機構を持たない単一の固定倍率タイプのスコープにのみ採用される","可変倍率レンズを多用する分だけ光量損失が増えSFPより明るさが劣る"],a:0,e:"FFPスコープはどの倍率でもレティクルのスケールが正確。倍率変更に関わらずミル計算やMOA計算でのレンジングとホールドオフが正確にできる。SFP（セカンドフォーカルプレーン）は最大倍率でのみ正確。"},
+  {d:"上級",q:"「トルークス（Truing）」とはスナイパーが弾道データに行う作業を指すが、その内容は何か？",c:["射撃前にスコープのレティクルが完全な水平になるよう傾きを丁寧に修正する","実際の着弾データをもとに弾道計算ソフトのBCや初速などのパラメータを修正し計算を現実に合わせる","連続射撃前に必ずマガジンを一度排出して再装填する準備の儀式的手順","射撃後の振動でゆるんだスコープマウントのネジをトルクレンチで増し締めする","射撃後のカーボン汚れを除去してバレル口元クラウニング面を鏡面研磨する"],a:1,e:"Truingとは実測着弾データ（特に遠距離）を弾道計算ソフト（Applied Ballistics等）に入力し、BCや初速値を微調整して計算と現実の乖離をゼロに近づける作業。精密なロングレンジ射撃には不可欠。"},
+  {d:"初級",q:"スナイパーにとって「スポッター（観測手）」の主な役割はどれか？",c:["作戦本部との通信を専任で担う無線オペレーターとしての通信サポート役","戦傷者の初期処置とTCCC手順を担うコンバットメディックとしての役割","ペアが機動する際に装甲車両や輸送車両を運転するドライバー役を務める","弾薬・食料・装備の補給計画と物資管理を専任で行うロジスティクス担当","弾道・風・距離の観測補助および着弾修正"],a:4,e:"スポッターはスコープで着弾を観測し距離・風・弾道修正を支援する。スナイパーが射撃に集中できるよう周囲の脅威監視、距離測定（レンジング）、着弾コール（「Hi 0.2ミル」など）も担当。"},
+  {d:"中級",q:"「MOAvsミル」の比較として正しい説明はどれか？",c:["MOAはNATO欧州加盟国が採用しミルは米軍と北米市場で標準として使用される","MOAは遠距離での補正量が大きくなるため超長距離射撃に特に適した単位","ミルは1クリックあたりの調整量が大きくより精密な照準補正が実現できる","ミルは0.1ミル単位で調整でき角度ベースの計算が容易。MOAは1/4MOAが一般的でインチ系の計算に便利","両者は表現方法が異なるだけで完全に同じ角度を指す単なる別名の関係"],a:3,e:"1ミル＝3.438MOA。ミル(mRad)は10進法ベースで数学的計算が直感的。NATO軍は多くがミル採用。MOAは100ydで1インチという覚えやすい関係性があり米国のスポーツシューターに広く普及。"},
+  {d:"上級",q:"「コリオリ補正」を要する超長距離射撃において、北半球から真東方向に撃つ場合弾はどちらにずれるか？",c:["左（南）","下方（弾が落ちる）","上方","右（北）","ずれない"],a:1,e:"コリオリ効果の弾道への影響は複数成分がある。真東・真西方向に撃つ場合は弾が「落ちる」方向（南向きの力）にずれる垂直成分が支配的になる。北に撃つ場合は右、南に撃つ場合は右（北半球）というルールは水平成分。"},
+  {d:"中級",q:"「ナチュラルポイントオブエイム（NPOA）」とは何か？",c:["スコープを100mでゼロインした際の基準距離と基本的な着弾点データ","発射後も照準を維持して弾道を安定させるフォロースルーの基本技術","スタンディングから腰の高さで銃を構える腰射ちの基本的な射撃姿勢","銃を持ったとき身体が自然に向く方向と銃の照準方向が一致した状態","グリップ圧と親指位置で反動と照準安定性を最適化するグリップ技術"],a:3,e:"NPOAは筋肉の緊張を使わずに自然に銃が目標を向く状態。NPOAが目標と合っていないと筋肉で強制的に銃を向け続けることになり、疲労・呼吸・心拍で照準がずれやすくなる。ポジション設定の第一歩。"},
+],
+
+// ─────────────────────────────────────────────────────────────
+ballistics: [
+  {d:"初級",q:"9×19mm弾（パラベラム/ルガー）の「19mm」は何を示すか？",c:["弾頭直径","弾全体長","薬莢長","初速(m/s)","発射薬重量(gr)"],a:2,e:"9×19mmの「9」は弾頭直径（口径）をmm表示、「19」は薬莢の長さをmmで表したもの。フルメタルジャケット（FMJ）弾では一般に115〜147grの弾頭重量がある。"},
+  {d:"初級",q:"9×19mm弾がNATO標準ピストル弾として広く採用されている最大の理由はどれか？",c:["製造コストが軍用ピストル弾の中で最も低く調達・維持がとりわけ安価だから","反動エネルギーが全軍用ピストル弾の中で最も小さく訓練コストが低いから","同口径弾の中で初速が最高水準で射程と終末弾道特性に最も優れているから","高い互換性・入手性・適切な威力のバランスが優れているから","最も古くから使用されており実績と歴史的信頼性が採用の根拠になっているから"],a:3,e:"9×19mmは1902年の設計ながら現代でも主要NATO諸国が採用を継続。グロック・SIG・HK・ベレッタ等多数のプラットフォームに対応し、弾薬の標準化・物流簡素化に優れる。"},
+  {d:"初級",q:"5.56×45mm弾はどのライフルで原型が開発されたか？",c:["AK-47","M14","G3","FAL","AR-15/M16"],a:4,e:"5.56×45mmNATO弾はユージン・ストーナー設計のAR-15のために開発された.223レミントンを軍用規格化したもの。1980年代にNATO標準弾として採用。"},
+  {d:"中級",q:"5.56×45mmのM855（SS109）弾の特徴として正しいものはどれか？",c:["サブソニック弾","軽量55grのFMJ弾","エクスパンディング（拡張）弾頭","重量62grのスチール貫通コア付き弾頭","トレーサー弾"],a:3,e:"M855（NATO指定SS109）は62grのFMJ弾で、スチールコアが前方に入った貫通性能重視の設計。1/9ツイスト以上のライフリングが必要。M193（55gr）より重く遠距離での安定性が高い。"},
+  {d:"中級",q:"7.62×51mm弾（.308ウィンチェスター）が5.56×45mmより優れる点として最も正確なものはどれか？",c:["同等の携行重量で5.56mmより多くの弾薬を携行できる補給効率の高さがある","反動が大幅に小さく女性や体格の小さな射手でも容易に扱える射撃特性がある","弾薬・銃身ともに5.56mmシステムより大幅に軽量で長距離行動に有利である","遠距離での弾道保持と運動エネルギーが高く障害物貫通力も大きい","弾薬・銃・整備を総合すると5.56mmよりはるかに低コストで長期運用できる"],a:3,e:"7.62×51mmは約9〜12gの弾頭で高BC値を持ち、1000m以上の遠距離でも超音速を保ちやすい。ガラス・軽装甲・壁材等への貫通力も高く、DMR（指定射手ライフル）やスナイパーライフルに広く採用。"},
+  {d:"初級",q:"4.6×30mm弾は主にどのような武器に使用されるか？",c:["800m以上の精密射撃を想定したボルトアクション式狙撃ライフルの専用弾","100発以上の連射を前提とした分隊支援用軽機関銃に最適化された弾薬","H&K MP7などのPDW（個人防衛火器）","装甲車両や構造物を貫通するための12.7mm以上の対物ライフル専用弾","フルサイズピストルの薬室に収まるよう設計された大型ハンドガン専用弾"],a:2,e:"4.6×30mmはH&KがMP7のために開発したPDW専用弾。小型ながらスチールコア貫通弾頭（AP）でNATOレベルIIIAボディアーマーを貫通する設計。近距離での威力と小型携行性を両立。"},
+  {d:"中級",q:"4.6×30mmと競合するFN P90用の5.7×28mm弾との比較として正しい説明はどれか？",c:["4.6×30mmは弾頭直径も薬莢全長も5.7×28mmより大きく全体的に重い設計である","4.6×30mmはPDWではなく通常のアサルトライフルに使用する標準弾薬である","異なるメーカーが開発したが同一のNATO PDW標準規格を完全に共有している","5.7×28mmは拳銃プラットフォームに収まらずSMGとライフル専用の弾薬である","5.7×28mmは口径がわずかに大きく弾速が高い傾向、4.6×30mmは弾頭が重め"],a:4,e:"5.7×28mm（FN）は約1700fps以上の高初速軽量弾頭。4.6×30mm（HK）は若干重い弾頭で低初速傾向。両弾ともソフトアーマー貫通を目的に設計されたNATOのPDW標準化競争から生まれた。"},
+  {d:"中級",q:"7.62×51mmのM80ボール弾の弾頭重量として正しいものはどれか？",c:["55gr","62gr","168gr","147gr","175gr"],a:3,e:"M80ボール弾の弾頭重量は147gr（約9.5g）のFMJボートテール弾。M118LR（マッチグレード）は175grのOTMボートテール弾で精密射撃向け。"},
+  {d:"上級",q:"「セクショナルデンシティ（SD）」が高い弾頭の特性はどれか？",c:["弾頭が軽い","断面積に対して質量が大きく貫通力が高い","弾頭が大きく広がりやすい","初速が遅い","安定性が低い"],a:1,e:"セクショナルデンシティ＝弾頭質量÷弾頭直径²。値が高いほど断面積に対して重く、標的に対する単位面積あたりの貫通エネルギーが高まる。長細い弾頭ほどSDが高くなる傾向がある。"},
+  {d:"初級",q:"FMJ（フルメタルジャケット）弾の構造として正しいものはどれか？",c:["鉛以外の素材を一切使わず弾頭全体を純鉛のみで形成した柔らかい弾頭設計","弾頭内部を完全中空にして命中時の転倒と展開を促すキャビティ弾頭","先端部のみ鉛コアが意図的に露出したセミジャケットホローポイント設計","鉛コアを銅合金（ギルディングメタル）が完全に覆う","高速回転で複数のフラグメントに分離して広範囲を制圧するフレシェット弾"],a:3,e:"FMJは鉛のコアを銅合金（カッパーワッシュまたはギルディングメタル）のジャケットが完全に覆った構造。ハーグ陸戦条約によりエクスパンディング弾の使用が禁じられた軍用弾の標準形態。"},
+  {d:"中級",q:"「ホローポイント（HP）弾」が命中時にエクスパンション（拡張）する主なメカニズムは何か？",c:["弾頭内部の特殊火薬が命中時に起爆して外側に向けて爆発的に膨張する機構","体温との接触で熱膨張合金が変形して直径が約2倍以上に自動拡張する","高速回転する弾頭が遠心力によって複数のフラグメントに分離して散布する","弾頭に埋め込んだ形状記憶磁石が体内磁場に反応して径方向に拡張する","先端の空洞部に体液が流入し液圧で弾頭が外側に開く"],a:4,e:"ホローポイント弾は先端の凹みに標的の液体（血液・組織液）が高速で流入し液圧（水撃）によってジャケットが後方に折れて「キノコ状」に拡径する。拡径により阻止力が増し貫通力は抑制される。"},
+  {d:"中級",q:"サブソニック弾（亜音速弾）を使用する主な目的はどれか？",c:["サプレッサー（消音機）使用時にソニッククラック（弾頭衝撃波音）をなくすため","超音速弾より弾道がフラットになり有効射程と最大到達距離を大幅に延ばすため","重量弾頭を用いることで軽量弾より優れた障害物貫通能力を発揮するため","重量弾頭による高い運動量でスライド後退時の反動エネルギーを意図的に増すため","低初速による安定した弾道で100m以遠での集弾性と命中精度を向上させるため"],a:0,e:"サブソニック弾は初速を音速（約340m/s）以下に抑えた弾薬。サプレッサーで発射音を低減しても弾が超音速だと衝撃波（ソニッククラック）が発生するため、完全静粛化にはサブソニック弾が不可欠。"},
+  {d:"上級",q:"「AP（アーマーピアシング）弾」の弾頭コア素材として代表的なものはどれか？",c:["鉛","銅","タングステンまたは硬化鋼","アルミニウム","プラスチック"],a:2,e:"AP弾は高硬度のタングステンカーバイドまたは硬化鋼のコアを使用。鉛より比重が高く硬いため、ボディアーマーのセラミックプレートや軽装甲を貫通できる。"},
+  {d:"中級",q:"9×19mm弾の「+P」表示が意味することは何か？",c:["弾頭表面をプラスチック樹脂でコーティングして金属汚染を防ぐ環境対応仕様","SAAMI規格より高い装薬圧力（オーバープレッシャー）","標準品より弾頭重量を数グレイン増加させエネルギーを強化した重量増加弾","製造精度の第三者認定を取得した高精度マッチグレードの品質保証仕様","ポリマー素材でコーティングしてバレル汚染を低減した環境配慮型弾頭"],a:1,e:"+PはSAAMI（小火器弾薬メーカー協会）の標準圧力より高い圧力で装填されたアンバーレート弾薬を示す。弾速が上がり阻止力が向上するが、強化対応のフレームでのみ使用が推奨される。"},
+  {d:"上級",q:"「BC G7」と「BC G1」はどのような状況に用いられる弾道係数か？",c:["G1モデルはピストル弾専用でライフル弾にはG7のみが正確に適用できる仕様","G7モデルはすべての弾薬カテゴリで常にG1より高い弾道予測精度を示す","G1は砲弾形（丸い先端）の標準弾に、G7はボートテール（尾部絞り）長距離弾に適した弾道モデル","G1モデルは音速以下の亜音速弾にのみ正確に適用できる専用弾道モデル","G7モデルは近距離のみに最適化されG1は全距離対応の汎用弾道係数である"],a:2,e:"弾道係数のモデル（G1〜G7）は基準弾頭の形状の違いを示す。G1は旧来の丸頭弾基準でピストル弾や古い軍用弾に広く使用。G7はボートテール・スピッツァー型を基準にしており現代の長距離ライフル弾に精度の高い予測を与える。"},
+  {d:"初級",q:"「グレイン（gr）」とは弾薬のどの要素を表す単位か？",c:["薬莢の長さ","弾薬全体の重量","弾頭または発射薬の重量（質量）","弾速","弾頭直径"],a:2,e:"グレイン（grain, gr）は弾薬業界で使用される質量単位。1gr＝0.0648g。弾頭重量（例：115gr）や発射薬重量（例：8.0gr）の表示に使われる。"},
+  {d:"中級",q:"9mm弾において115gr FMJと147gr FMJを比較した場合の一般的な特性の違いは何か？",c:["重量のある147grの方が推進力が増加して115grより常に高い初速が得られる","115grの方が初速が速く、147grは重くてサブソニックに近い初速となり貫通力が異なる","弾頭重量が異なるだけで初速・弾道・終末特性はほぼ同一で実用差はない","147grの運動エネルギーと断面密度が組み合わさり5.56×45mmに匹敵する威力になる","115grの軽量弾頭は発射薬の燃焼速度制約で音速（約340m/s）を超えられない"],a:1,e:"9mm 115grは約1180fps（超音速）、147grは約980fps（亜音速域）と初速が大幅に異なる。147grサブソニックはサプレッサーとの相性が良く、115grは速射性と平坦な弾道が利点。"},
+  {d:"上級",q:"5.56×45mmのM855A1（EPR）弾がM855より優れるとされる点はどれか？",c:["弾頭設計の見直しでM855より全体重量が大幅に増加した高エネルギー仕様","命中後に弾頭が展開するエクスパンディング構造を新たに採用した設計","量産体制の最適化によりM855より調達コストが大幅に削減された経済仕様","初速を意図的に抑えサプレッサー使用に最適化した亜音速ロード設計仕様","鉛フリー・スチールコアとカッパーアロイチップで硬化目標貫通力が向上し環境負荷も低減"],a:4,e:"M855A1 EPR（Enhanced Performance Round）は鉛フリー設計で銅合金チップとスチールコアを採用。硬化目標（ボディアーマー・鋼板）への貫通力がM855より向上し、環境規制への対応も図られている。米陸軍の現行標準弾。"},
+  {d:"中級",q:"「トレーサー弾」は夜間射撃以外にどのような用途で使われるか？",c:["着弾点の修正指示と火力調整","威力増強","消音効果","障害物貫通","近接信管の起動"],a:0,e:"トレーサー弾の発光はチームメンバーへの射撃方向・目標指示と着弾修正に使われる。機関銃では通常弾4発に1発の割合で装填（4:1トレーサーミックス）し継続射撃中の弾道確認と機器冷却状態管理に活用。"},
+],
+
+// ─────────────────────────────────────────────────────────────
+cqb: [
+  {d:"初級",q:"CQBにおける「スタック（Stack）」とは何を指すか？",c:["複数マガジンを素早く取り出せるよう縦に積み重ねてポーチに収納する方法","遮蔽物の後ろから銃口だけ出して射撃する低被弾リスクの射撃ポジション","建物の階数や構造物の高低差を表す垂直的な配置を示す用語","ドア突入前に壁際に縦一列に並ぶ隊形","接触時に全員が向かう事前に決められた緊急退避・集合経路のこと"],a:3,e:"スタックはドアや角の手前で突入チームが壁に密着して縦一列に並ぶ隊形。ナンバー1（ポイントマン）から順に並び、各員の役割（クリアリング方向）が決まっている。"},
+  {d:"初級",q:"\"BREACH（ブリーチ）\" とは何を意味するか？",c:["ドアや障壁を強制的に開放（突破）すること","射撃中断命令","後退命令","安全確認完了","弾薬補給"],a:0,e:"ブリーチはドア・ゲート・壁などの障壁を開放する行為。方法により「バリスティックブリーチ（射撃）」「メカニカルブリーチ（バール等）」「爆薬ブリーチ（爆発物）」に分類される。"},
+  {d:"初級",q:"\"CLEAR（クリア）\" の宣言が意味することは何か？",c:["撤退開始","弾切れ警告","担当エリアの脅威排除・確認が完了したという報告","安全装置解除","支援要請"],a:2,e:"\"CLEAR\" は自分が担当するセクターまたは部屋に脅威がないことを確認・宣言する用語。チーム全員が \"CLEAR\" を宣言して初めて部屋クリア完了となる。"},
+  {d:"初級",q:"\"COVER ME（カバーミー）\" はどのような意味か？",c:["隠れろ","私を追え","私の動きを援護（カバーファイア）してくれ","後退しろ","負傷者を搬送してくれ"],a:2,e:"\"Cover me\" は動いている間に仲間に敵の動きを抑制するサプレッシブファイアを行うよう要請する言葉。動く側がかけ声をかけ、残る側がカバーファイアを実施してから移動が始まる。"},
+  {d:"初級",q:"\"FATAL FUNNEL（フェイタルファネル）\" とは何か？",c:["最も安全な射撃ポジション","退避経路","敵の包囲陣形","ドア口（開口部）の正面中心エリアで、突入者が最も被弾リスクが高い危険地帯","銃口の向き"],a:3,e:"フェイタルファネルはドアや開口部の中央正面エリア。突入者がここに長時間いると部屋内の敵から集中的に狙われる。スタックからの突入ではこのエリアを素早く通過または回避することが基本。"},
+  {d:"初級",q:"\"BUTTONHOOK（ボタンフック）\" エントリーとは何か？",c:["ドア枠の手前で折り返し、ドア近くの壁沿いに身を寄せながら内側に入る方法","ドア正面から真っすぐ入る方法","窓から飛び込む方法","後ろ向きに入る方法","ドアを開けずに射撃する方法"],a:0,e:"ボタンフックエントリーはドアの手前でドア枠の外側から内側へ回り込むように入る技術。クロスエントリー（反対側に行く）と対になるドア突入技術のひとつ。"},
+  {d:"中級",q:"\"CROSS-T（クロスT）\" ジャンクション（T字廊下）のクリアリングで最初に警戒すべき方向はどれか？",c:["自分の後方","T字の左右両端（遠方コーナー）","天井","床","正面直進方向"],a:1,e:"T字廊下の交差点では左右方向（近くのコーナー）よりも廊下の奥（遠方）に対する脅威が深刻。接近中に遠方の角から射撃を受けることが多く、前方の遠い脅威を早期に確認することが優先される。"},
+  {d:"中級",q:"\"PIE THE CORNER（パイ・ザ・コーナー）\" とは何を意味するか？",c:["コーナーに爆発物を設置する","角を走り抜ける","角から少しずつ身をずらしながらセクターを扇状に少しずつ露出・確認する技術","伏せてコーナーを確認する","後ろ向きにコーナーを曲がる"],a:2,e:"Pieing（パイイング）は身体の露出を最小限にしながら角の向こう側を扇形に少しずつ確認する技術。角から離れて行うほどより広い範囲を見られる（ワイドパイ）が視認されやすくなるトレードオフがある。"},
+  {d:"中級",q:"\"ROOM DOMINANCE（ルームドミナンス）\" の原則として正しいものはどれか？",c:["部屋の中央に留まる","突入後、各員がアサイン方向に分散し部屋全体をクロスコバレッジで即時制圧する","ドア口で停止して様子を見る","一人ずつ順番に入室する","窓を最初に確保する"],a:1,e:"ルームドミナンスは突入チームが部屋に入った直後に各員が担当方向（コーナー）に向かい迅速に分散、互いの射線が交差するよう（クロスカバー）配置することで部屋全体を瞬時に制圧する原則。"},
+  {d:"初級",q:"\"CHECK FIRE（チェックファイア）\" コマンドの意味は何か？",c:["射撃を開始せよ","即時射撃を中止せよ","弾薬を確認せよ","マガジン交換せよ","後退しながら射撃せよ"],a:1,e:"\"Check fire\" は即時射撃を停止する命令。友軍・民間人の安全確保・目標誤認の可能性・弾薬節約等の状況で使用。\"Cease fire\" が完全停止指示であるのに対し、\"Check fire\" は緊急的・一時的な停止を意味する場合が多い。"},
+  {d:"中級",q:"\"DANGER CLOSE（デンジャークロース）\" とはどのような状況を指すか？",c:["友軍部隊が誤爆・至近弾の危険圏内にいる状態で支援砲撃・空爆を要請する状況","射撃禁止ゾーン","ドアが施錠されている状態","射程外の目標","弾薬残数が少ない状態"],a:0,e:"Danger closeは友軍と目標の距離が火力支援の安全距離以内（砲撃は600m以内など）で支援要請するときに使う警告用語。要請者が指揮官から特別許可を取り、危険を承知で要請する緊急状態を示す。"},
+  {d:"中級",q:"\"IMMEDIATE ACTION（IA）\" ドリルとはCQBにおいて何を指すか？",c:["負傷者への応急処置","事前計画なしに接敵した際の即座の反応行動（反撃・離脱・制圧）","ブリーチの開始合図","マガジン交換","後退命令"],a:1,e:"IAドリルは敵との予期せぬ接敵（コンタクト）が発生した際に、計画・命令なしに即座に取る標準化された戦闘行動。接触方向への反撃、遮蔽物への移動、チームの再集結等を含む反射的な行動パターン。"},
+  {d:"上級",q:"\"OFFSET AIMING（オフセット照準）\" がCQBで必要になる主な理由は何か？",c:["スコープやドットサイトの光軸がバレルより上（オフセット）にあるため、近距離では照準点より弾着が下になる","距離が遠いから","弾頭が重いから","風の影響が大きいから","スコープが大きすぎるから"],a:0,e:"スコープやドットサイトはバレル中心より数cm上に位置する（一般的に2〜3cm）。25m以内の至近距離ではこのオフセット分だけ実際の着弾が照準点より下になるため、補正して狙う必要がある。"},
+  {d:"初級",q:"\"BOUNDING OVERWATCH（バウンディングオーバーウォッチ）\" とはどのような移動技術か？",c:["一部が止まって監視（オーバーウォッチ）する間に残りが前進し交互に移動する","全員同時に前進する","匍匐前進する","後退する","放射状に広がる"],a:0,e:"バウンディングオーバーウォッチは片方のエレメントが停止・射撃態勢（オーバーウォッチ）を取りながらもう片方が前進し交互に跳躍（バウンド）する戦術移動の基本。常に誰かが前方を警戒している状態を維持できる。"},
+  {d:"中級",q:"\"HASTY AMBUSH（ヘイスティアンブッシュ）\" とは何か？",c:["計画的な待ち伏せ","偽の撤退","後退時の陽動作戦","事前計画なしに急遽設定する待ち伏せ攻撃","物資補給地点の確保"],a:3,e:"ヘイスティアンブッシュは偶発的に有利なポジションに陣取る機会が生じた際や短時間で設定する即興の待ち伏せ。事前の計画なく実施するため各員の役割を素早く確認して実行する即応能力が求められる。"},
+  {d:"初級",q:"\"SLICING THE PIE（スライシング・ザ・パイ）\" はどのような状況で使われる技術か？",c:["狙撃ポジションの確保","弾薬分配","退避路の確保","角やドア口の向こうを段階的に少しずつ確認するとき","爆発物処理"],a:3,e:"スライシング・ザ・パイはコーナーやドア口を「パイを切るように」少しずつ角度を変えながらセクターを確認する技術。身体の露出を最小限にしながら可能な限り広い視野を確保できる基本技術。"},
+  {d:"中級",q:"\"LURE\" 戦術（ルアー戦術）とはCQBにおいて何を指すか？",c:["敵を部屋の入口や特定位置に誘い出し、有利なポジションから対処する戦術","突入の合図","爆発物の設置","無線通信の妨害","物資の偽装"],a:0,e:"ルアー（疑似餌）戦術は音・光・動きなどで敵を特定の位置に誘き出し、待ち構えた味方が対処する戦術。直接突入よりリスクが低い場合がある。"},
+  {d:"上級",q:"\"CQB\" における \"T-shaped corridor\" でのクリアリングで \"Number 1\" の役割は何か？",c:["一番最初に入り最も深いコーナーを取る","後方警戒","医療支援","無線連絡","爆発物解除"],a:0,e:"Number 1（ポイントマン）は突入後、最も遠いコーナー（ディープコーナー）を担当。最初に致命的な脅威に対処する最高リスクのポジション。動線・視野・銃の向きをあらかじめイメージしたうえで行動する。"},
+  {d:"初級",q:"\"STACK UP\" の号令がかかったとき各員がとるべき行動はどれか？",c:["伏せて射撃態勢をとる","装備を降ろして休憩する","後退して集合ポイントへ向かう","個々に散開してカバーをとる","壁沿いに縦一列に並びドア突入の準備態勢をとる"],a:4,e:"\"Stack up\" はドアや開口部手前に縦一列のスタック隊形を作る命令。各員は壁に密着して並び、ナンバリング（1番・2番…）を確認し突入の準備を整える。"},
+  {d:"中級",q:"\"SHOOT-MOVE-COMMUNICATE\" の原則でCQBでの最優先事項の順はどれか？",c:["コミュニケーション→移動→射撃","射撃（脅威排除）→移動（カバーへ）→コミュニケーション（状況報告）","移動→コミュニケーション→射撃","コミュニケーション→射撃→移動","三つ同時に行う"],a:1,e:"接敵時の基本優先順：①Shoot（即座に脅威に対応）②Move（遮蔽物へ移動または前進）③Communicate（状況をチームに報告）。状況によって変わるが「まず脅威に対処してから動く」が基本。"},
+  {d:"上級",q:"\"DEAD SPACE（デッドスペース）\" をCQBで最小化するために使われる技術はどれか？",c:["ワイドアングルスコープを使用する","アングルドエントリーとチームメンバーのクロスカバー配置でデッドスペースを消す","大型の鏡を持ち込む","天井を撃って確認する","声を出して敵を動かす"],a:1,e:"デッドスペース（死角）は一人では確認できないが、チームが異なる角度から入ることで互いの死角を補い消せる。また突入前にアングルを広げてパイイングでデッドスペースを減らすことが基本。"},
+],
+
+// ─────────────────────────────────────────────────────────────
+medic: [
+  {d:"初級",q:"TCCC（Tactical Combat Casualty Care）の3フェーズを正しい順に並べたものはどれか？",c:["Tactical Field Care → TACEVAC Care → Care Under Fire","Tactical Field Care → Care Under Fire → TACEVAC Care","TACEVAC Care → Care Under Fire → Tactical Field Care","Care Under Fire → TACEVAC Care → Tactical Field Care","Care Under Fire → Tactical Field Care → TACEVAC Care"],a:4,e:"TCCCは①Care Under Fire（交戦中の処置：止血のみ優先）②Tactical Field Care（脅威から離れての処置）③TACEVAC Care（後送中の処置）の3段階。段階が上がるほど詳細な処置が可能になる。"},
+  {d:"初級",q:"\"MARCH\" または \"MARCHE\" プロトコルにおける「M」は何を意味するか？",c:["Massive hemorrhage（大量出血のコントロール）","Medication（投薬）","Movement（移動）","Mental status（意識確認）","Mouth（口腔確保）"],a:0,e:"MARCHはTCCC処置の優先順。M=Massive hemorrhage（大量出血制御）、A=Airway（気道）、R=Respiration（呼吸）、C=Circulation（循環）、H=Hypothermia/Head injury（低体温・頭部外傷）。出血制御が最優先。"},
+  {d:"初級",q:"ターニケット（TQ）を四肢に適用する際の正しい位置はどれか？",c:["最大の止血効果のため傷口の真上に直接密着重ねるように適用する方法","肘や膝などの関節直上に当て骨格を利用して効果的に圧迫止血を行う","止血圧力を均等にかけるため傷口の正中央に正確に位置合わせして固定する","神経・血管への影響を最小化するため傷口から20cm以上離して適用する","傷口から5〜8cm（2〜3インチ）中枢側（心臓に近い側）"],a:4,e:"ターニケットは傷口の約5〜8cm（2〜3インチ）中枢側（心臓側）の四肢に適用する。関節上は避ける。CAT（コンバットアプリケーションターニケット）やSOF-Tが代表的な戦術用TQ。"},
+  {d:"初級",q:"傷口を直接圧迫止血する際に使う戦術用ガーゼとして代表的なものはどれか？",c:["清潔な綿素材を折り畳んで傷口に直接当てる標準的な一般用ガーゼを使用する","伸縮包帯を傷口に巻き付けて圧力をかける圧迫包帯単独での処置方法","断熱性の高いアルミホイルを傷口に当て体温低下と汚染を同時に防ぐ方法","コンバットガーゼ（QuikClot Combat Gauze）またはCelox-A等の止血剤含浸ガーゼ","柔軟なシリコン素材のパッドを傷口に貼って出血を吸収・封鎖するシール"],a:3,e:"Combat Gauze（QuikClot）はカオリン（無機止血剤）を含浸させた止血ガーゼ。傷口に深くパッキング（充填）しながら直接圧迫することで通常の直接圧迫より速く凝固を促進できる。"},
+  {d:"中級",q:"「パッキング（Wound Packing）」が必要な典型的な部位はどれか？",c:["鼠径部・腋窩・頸部など、ターニケットが使用できない接合部の出血","腕や足の皮膚表面に近い浅い切り傷で出血量が比較的少ない四肢の軽傷部位","頭蓋骨に亀裂・陥没が生じた骨折で脳へのアクセスが必要な頭部外傷部位","複数の肋骨が折れてフレイルチェストを引き起こしている重篤な胸部骨折部位","異物が刺さるか鈍的外力で損傷した眼球・眼窩周囲の眼部外傷部位"],a:0,e:"ターニケットは四肢にしか使用できない。鼠径部・腋窩・頸部などJunctional（接合部）出血にはガーゼパッキング＋圧迫、またはJunctional Emergency Treatment Tool（JETT）等が用いられる。"},
+  {d:"中級",q:"張力性気胸（Tension Pneumothorax）の緊急処置として正しいものはどれか？",c:["CPR手順に従い胸骨を規則的に圧迫して心臓のポンプ機能を補助する処置","気道を最大開通させるために平坦な地面で仰向けにそっと寝かせる体位管理","腹腔内空気を排出するため腹部を両手で継続的に圧迫して対処する処置","患側（傷のある側）の第2肋間・鎖骨中線での針減圧（NDC）","鼻と口を覆う酸素マスクで高濃度酸素を供給して呼吸困難を緩和する処置"],a:3,e:"張力性気胸は胸腔に空気が貯まり肺・心臓を圧迫する生命危機状態。NDC（Needle Decompression）は患側第2肋間・鎖骨中線に14Gカテーテルを刺して脱気する緊急処置。迅速な処置が生死を分ける。"},
+  {d:"初級",q:"意識不明の傷病者を単独で搬送する際の基本姿勢として適切なのはどれか？",c:["脊髄損傷悪化を防ぐため頭から足まで一直線を保つ仰向けの標準搬送姿勢","意識が戻りかけの傷病者を背後から支えながら半座位・座位姿勢で運ぶ方法","腹部臓器への圧迫を避けるため顔を横に向けてうつ伏せにした伏臥位搬送","回復体位（側臥位）：気道確保と嘔吐物による窒息防止","軽傷と判断した傷病者を立たせて両脇を支えながら自力で歩いて移動させる"],a:3,e:"回復体位（Recovery Position）は意識不明患者を横向き（側臥位）に寝かせ、気道を開通させ嘔吐物による誤嚥・窒息を防ぐ体位。口の方向を下に向け、上側の膝を曲げて体が前転しないよう安定させる。"},
+  {d:"中級",q:"「CAT（Combat Application Tourniquet）」のウィンドラスを回す目的は何か？",c:["外側のベルクロストラップを重ねて固定しバンドが緩まないよう仮止めする","患肢の毛細血管圧を測定してターニケットの止血効果を数値確認する機能","ロッドを回すことで傷口充填ガーゼを均等にパッキングする機能を担う機構","ロッド回転でカプセルが破砕されカオリン止血剤が傷口に直接放出される機構","バンドを絞って動脈血流を完全に遮断するために締め付けを強化する"],a:4,e:"CATのウィンドラスはロッド状の棒をターニケットバンドの輪に通し回転させてバンドをツイスト（捻り）することで強力な締め付けを生み出す機構。動脈の血流が止まるまで回し続ける（末梢脈拍消失まで）。"},
+  {d:"中級",q:"「XStat」が従来のガーゼパッキングに対して優位な点はどれか？",c:["従来のコンバットガーゼより製造コストが低く多量に携行できる経済的選択肢","圧縮パッケージで従来ガーゼより大幅に軽量で長時間行動でも携行負担が少ない","小型スポンジペレットを傷口に注入することで深部・狭部の止血が短時間で可能","真空密封パッケージにより常温で3年以上の長期無菌状態を保証できる設計","スポンジの化学反応で周囲組織に温熱効果を与えて血液凝固を効果的に促進する"],a:2,e:"XStatは注射器状デバイスから膨張スポンジ（ペレット）を傷口に充填する止血デバイス。狭い穿通創や深部傷口でのパッキングが難しい場合に有効で、止血時間を大幅に短縮できる。"},
+  {d:"上級",q:"「緊張性気胸（Tension Pneumothorax）」と「開放性気胸（Open Pneumothorax）」の処置の違いはどれか？",c:["どちらのタイプでも14G針を第2肋間に刺す全く同一の針減圧手順を実施する","どちらも傷側を下にした半座位の回復体位のみで置くと自然回復が期待できる","タイプに関わらず胸骨圧迫と人工呼吸を繰り返すCPRのみで完全に対処できる","開放性は清潔な圧迫包帯だけで十分であり張力性は外科的開胸手術が唯一の解","開放性にはシール（ベントシール）で患側を覆い内外圧差を管理し、張力性には針減圧で過剰空気を抜く"],a:4,e:"開放性気胸（サッキングチェストウーンド）にはベントシール（ハリオチェストシール等）で傷口を覆い内外の気圧差を弁機構で管理する。張力性に進行した場合は針減圧（NDC）が追加で必要になる。"},
+  {d:"初級",q:"「AVPU」スケールでの「P」は何を意味するか？",c:["Pain aware（痛みがある）","Pressure stable（血圧安定）","Pulse present（脈拍あり）","Paralyzed（麻痺）","Responds to Pain（痛み刺激に反応する）"],a:4,e:"AVPUはA=Alert（意識明瞭）、V=Verbal（声に反応）、P=Pain（痛みに反応）、U=Unresponsive（無反応）の意識レベル評価スケール。現場での迅速な意識確認に使用。"},
+  {d:"中級",q:"低体温症予防（「H」in MARCH）として現場でとれる最初の処置はどれか？",c:["加温した温かい乳酸リンゲル液などの輸液を静脈内投与して体内から温める","濡れた衣類を除去し断熱ブランケット（スペースブランケット/サバイバルブランケット）で体を包む","熱湯や温水を直接皮膚にかけて体表温度を外部から素早く上昇させる処置","血流促進と発熱を促すため全身を素手で強くこすり続けてマッサージする","自力歩行させて筋肉運動による代謝熱産生で体温を自然に回復させる"],a:1,e:"外傷後の低体温は凝固能障害を悪化させる「致死的三徴（死のトライアングル）」の一因。濡れた衣服を除去し断熱素材で覆うだけでも体温低下を遅らせられる。TACEVAC中も保温継続が重要。"},
+  {d:"中級",q:"「ハイムリック法（腹部突き上げ法）」が禁忌または変法が必要な対象はどれか？",c:["成人","子供（1歳以上）","乳児（1歳未満）および妊婦","高齢者","肥満者"],a:2,e:"乳児（1歳未満）には腹部突き上げ法は内臓損傷の危険があるため背部叩打法（背中を5回叩く）＋胸部突き上げ法（胸骨を5回押す）を用いる。妊婦や極端な肥満者には胸部突き上げ法に変更。"},
+  {d:"上級",q:"「出血性ショック」における「積極的輸液蘇生（Damage Control Resuscitation）」の方針として正しいものはどれか？",c:["大量の生理食塩水をできるだけ速く投与して血圧を正常値120mmHgに戻す方針","炭酸水素ナトリウムを静脈投与して出血性アシドーシスを直接中和する方針","ドーパミン持続静脈投与で末梢血管を収縮させて血圧を速やかに正常化する","赤血球・血漿・血小板を1:1:1比率で投与しPermissive Hypotension（許容性低血圧）を維持する","患者を意図的に低体温状態に誘導して代謝需要を抑制し酸素不足を代償する"],a:3,e:"DCRでは出血が制御されるまで血圧を低めに保つPermissive Hypotension（収縮期80〜90mmHg目安）を適用し、大量生食での希釈性凝固障害を避けながら血液製剤を1:1:1比率で投与する現代的輸液戦略。"},
+  {d:"初級",q:"止血帯（ターニケット）使用後に記録すべき最重要事項は何か？",c:["適用を行った救急隊員・戦友の氏名と所属部隊を示す識別番号の記録","患部の識別管理に使うターニケットバンドの製品色と規格サイズ情報","適用した時刻（TK TIME）","刃物・銃創・爆破による外傷の深さとダメージ程度を推定した深度評価","輸血の血液型適合判定のために現場で確認したABO式血液型情報"],a:2,e:"ターニケット適用時刻（TK Time）の記録は後送先での医師が四肢温存可能か否か判断するための最重要情報。一般的に適用後2時間以内が四肢温存の目安とされる。TKに時刻を直接マジックで書く。"},
+],
+
+// ─────────────────────────────────────────────────────────────
+rope: [
+  {d:"初級",q:"「もやい結び（Bowline）」の最大の特徴と用途は何か？",c:["荷重がかかるほど結び目が締まって解けにくくなる自己締結型の固定結び","2本のロープを繋ぎ合わせて必要な長さに延長するジョイント専用結び","ロープの切断端がほつれないよう末端を留める専用の末端止め仕上げ結び","固定した大きさのループを作り荷重がかかっても解けやすい多用途結び","プーリーの代わりにロープをフリクションで方向変換させる摩擦ガイド結び"],a:3,e:"もやい結びはループサイズが固定で荷重下でも形が変わらず、荷重を取り除けば比較的容易に解ける。人命救助・アンカー構築・ハーネス仮設など幅広く使われる最重要結びの一つ。"},
+  {d:"初級",q:"「インライン・フィギュアエイト（Figure-8 on a Bight）」の主な用途はどれか？",c:["過剰に太いロープを折り返して実質的な直径を細くするための縮径技術","ロープ中間にループを作りカラビナやアンカーへの接続に使う","ロープ末端がビレイデバイスやプーリーを通り抜けないストッパー結び","異なる素材や太さの2本のロープを安全に繋ぐ接続用の継ぎ結び","岩や木に巻き付けてシステムに意図的な摩擦制動をかけるフリクション技術"],a:1,e:"フィギュアエイト・オン・ア・バイトはロープ中間部に固定ループを作る結び。クライミング・レスキューで主要なロードベアリングノット（荷重支持結び）として使用。フォロースルー（追いエイト）も重要。"},
+  {d:"初級",q:"ロープの「破断強度（MBS/UTS）」と「作業荷重（WLL）」の一般的な安全率はどの程度か？",c:["最低限の安全裕度で破断強度の2倍の荷重まで耐えられる最小係数の設定","作業荷重と破断強度を等しく設定した安全係数ゼロの危険な1対1設定","機器の自重のみを考慮した1.2倍という非常に微小な安全余裕しかない設定","あらゆる想定外荷重に備えた50倍という非常に保守的で過剰な安全係数","5:1〜10:1（状況や規格による）"],a:4,e:"WLL（Working Load Limit）はMBS（最小破断強度）を安全率で割った値。ロープレスキューではNFPA規格で安全率15:1（人命）が一般的。5:1〜10:1以上の安全率が基本とされる。"},
+  {d:"初級",q:"「クローブヒッチ（巻き結び）」の特性として正しいものはどれか？",c:["荷重が一方向にのみかかる場合には全結びの中で最も高い安全性を発揮する","ロープを切断することなく端末の余り部分を固定できる末端処理専用結び","両方向から引っ張ると解けやすいため、荷重方向が一定のアンカーに仮固定する用途に向く","試験値で他の全結びより高い保持力を示す最強の結びとして広く知られている","水や油分を含むと摩擦が低下して特に容易に解けてしまう耐水性の低い結び"],a:2,e:"クローブヒッチ（巻き結び）は素早く設定・解除できるが荷重方向が変わると緩みやすい特性がある。ロープの固定点への一時的な固定や荷重方向が一定のアンカー用途に使う。単独での人命確保には向かない。"},
+  {d:"中級",q:"「マンハーネスノット（Butterfly Knot / Alpine Butterfly）」の特長はどれか？",c:["ロープ末端にのみ設けられ中間部での使用は強度低下で危険な末端専用結び","ロープ中間部に作れる全方向荷重対応の安定したループで解きやすい","荷重が一方向に固定された場合にのみ安全な保持力を発揮する片方向結び","ゴムロープのような弾性素材でのみ本来の性能を発揮する弾性素材専用結び","乾燥した環境では解けやすく水中でのみ安定した締結力を維持する特殊結び"],a:1,e:"アルパインバタフライはロープ中間部にどの方向に引っ張っても安定したループを作れる結び。傷んだ箇所を迂回するためロープ中間に人をつなぐ多人数縦走・レスキューラインに使われる。"},
+  {d:"中級",q:"「ダブルフィッシャーマンズノット（グレープバインノット）」の主な用途はどれか？",c:["シュリンゲ（スリング）の接続やロープを輪にする際の堅牢な結び","素早く着脱できる時間制限の厳しい現場での一時的な仮止め専用の結び","ロープ末端の繊維がほつれ広がらないよう熱処理の代わりに使うほつれ止め","カラビナや岩角にロープを巻き付けてシステムに摩擦制動をかける結び","複数プーリーとロープで構成する機械的優位な増力システムの構築に使う結び"],a:0,e:"ダブルフィッシャーマンズはロープの末端同士を繋ぐ最も信頼性の高い結びの一つ。スリングの端末をつなぐ「コードスリング」製作に多用。一旦荷重がかかると解くのが非常に困難なため恒久的な接続に適する。"},
+  {d:"中級",q:"「プルージックノット（Prusik）」はどのような機能を持つ摩擦結びか？",c:["荷重がかかると締まり、荷重を取り除いたり手で持つと動かせる自己ブレーキ式摩擦結び","弾性変形によって突然の衝撃荷重を吸収して落下時の衝撃力を緩和する結び","サイズが不変の固定ループをロープ中間に素早く簡単に作るための結び","専用カッター不要でロープを手で引きちぎるための切断専用結びとして使う","一方向への荷重にのみ摩擦が働き逆方向には完全に滑走する片方向専用結び"],a:0,e:"プルージックノットは細いコード（プルージックコード）をメインロープに3〜4回巻きつけて作る摩擦結び。荷重がかかると摩擦でロープを掴み動かなくなり、荷重を抜いて手で持つと上下に動かせる。ロープ昇降・確保に利用。"},
+  {d:"初級",q:"「エイトノット（フィギュアエイト・ストッパー）」の最も基本的な用途はどれか？",c:["ロープの末端がブロック・デバイスを通り抜けないようにするストッパー","異なる素材や太さの2本のロープを安全に接続して1本として使用する繋ぎ結び","ハーネスやアンカーに直接接続できる荷重対応の固定ループを末端に作る結び","複数アンカーへ均等に荷重を分配するためのロードシェアリング専用の結び","カラビナや岩角にロープを通して意図的に摩擦制動をかけるフリクション結び"],a:0,e:"フィギュアエイトストッパーはロープ末端に作るストッパーノット。ブロック・ビレイデバイス・プーリー等のエスケープ防止に使用。オーバーハンドノットより嵩があり確実なストッパーになる。"},
+  {d:"中級",q:"レスキューにおける「3:1 Zシステム（プーリーシステム）」で得られる機械的優位は何か？",c:["プーリー比率3:1によりロープを引き込む速度が入力速度の3倍に高速化される","プーリー使用前後で力の大きさは全く変わらず方向変換のみに特化した装置","入力の3倍の制動・ブレーキ効果でレスキューシステム全体の安全性を高める","理論上3倍の力（実際はロープ摩擦で2〜2.5倍程度）","プーリーを重ねれば原理上は無限大の増力が可能な無限増力システムである"],a:3,e:"3:1 Zシステムは2つのプーリーとロープで構成する機械的優位システム。理論上3倍の引き上げ力が得られるが、実際はカラビナ・プーリー・ロープの摩擦で効率が落ちる。重傷者や要救助者の引き上げに多用。"},
+  {d:"上級",q:"「ロードシェアリングアンカー（SERENE-A / Equalette）」の目的は何か？",c:["複数のアンカーポイントに荷重を分散させ、一点が失敗しても全体が崩壊しないようにする","最も強い単一アンカーのみに荷重を集中させて他点は補助的に使用する方法","不足するロープの長さを繋いで遠い距離のアンカーまで届かせる延長技術","下降器の摩擦量を調整して急斜面での降下速度を一定に制御するシステム","アッセンダーとフットループを組み合わせてロープを効率よく登る補助装置"],a:0,e:"ロードシェアリングアンカーはシステム全体の信頼性を高めるために複数のアンカーポイントを連結し荷重を分散させる技術。一点のアンカーが抜けても他で保持できる冗長性（リダンダンシー）が目的。"},
+  {d:"初級",q:"「ハーフヒッチ」の主な役割はどれか？",c:["他の結びの仮固定や末端処理の補助として使う","システムの主要荷重を単独で完全に支える唯一のメインノットとして使用する","ロープの不要部分をその場で素早く切断するためのカット位置マーキングに使う","カラビナや岩角にロープを通して意図的にシステムへ摩擦制動をかける結び","太さが異なる2本のロープを同等強度で安全に繋ぐ繋ぎ結びとして使用する"],a:0,e:"ハーフヒッチ単体は強度が低く荷重支持には適さないが、もやい結びなどの末端処理（テールをロープに巻く）やクローブヒッチの構成要素として補助的に使われる。2個重ねた「2ハーフヒッチ」で仮固定に使うことも多い。"},
+  {d:"中級",q:"「ダイニーマ/スペクトラスリング」の特徴として正しいものはどれか？",c:["ナイロンより弾性変形量が多く伸縮性に優れるためダイナミックロープに最適","超高分子量ポリエチレン繊維で軽量高強度だが動的衝撃吸収能力が低く熱・摩耗に弱い","密度が水より大きいため水中で常に沈んで流水中でも位置が安定する","紫外線への耐性が非常に高く長期間の屋外暴露でもほとんど劣化しない","同等強度のナイロン製品と比較して製造コストが低く安価に広く入手できる"],a:1,e:"ダイニーマ（UHMWPE）は同径で鉄より強く非常に軽量。一方で伸びが少ないため衝撃荷重の吸収が苦手で、融点が低く（約147℃）摩擦熱に弱い。カラビナ等との接触部分の摩耗にも注意が必要。"},
+  {d:"上級",q:"「NFPA 1983 Life Safety Rope」においてGeneral Use（GU）グレードの最低破断強度は何kNか？",c:["軽作業・物資のみ対象のライトユース規格で最低10kNの破断強度が要求される","20kN（約4500lbf）","人命を支えるGeneral Use規格の最低基準として40kNの高い破断強度が必須","補助ロープのアクセサリー規格で要件とされる最低5kNの最小破断強度設定","1人用Light Use規格の人命対応最低水準として15kNの破断強度が求められる"],a:1,e:"NFPA 1983はレスキューロープの米国規格。General Use（複数人対応）グレードの最低MBSは40kN（約8992lbf）。Light Use（1人）は20kN（約4496lbf）が最低基準。人命に関わるため常に認証済みロープの使用が推奨される。"},
+  {d:"中級",q:"「バックアップノット」としてプルージックをメインロープに追加する理由はどれか？",c:["メインシステムに追加することでロープ上の移動速度を大幅に向上させるため","鋭利な岩角による摩擦損傷からメインロープの外皮を保護するカバーとして","降下中や引き上げ中にシステムが制御不能になった場合の緊急ストップ","吊り下げられたロープが風でスウィングする揺れを抑制して安定を保つため","荷重対応カラビナの代わりに接続点を作り機材コストを大幅に削減するため"],a:2,e:"バックアッププルージックはビレイデバイス・グリグリ等の主確保システムが何らかの理由で機能しなくなった場合の二次的な安全装置。摩擦によりロープの意図しない走り出しを止める命綱的役割を果たす。"},
+  {d:"初級",q:"「カウヒッチ（Girth Hitch / Lark's Foot）」はどのような用途に多用されるか？",c:["システム全体の主要荷重を単独で受け持つメインアンカーノットとして使用する","素材や太さが異なる2本のロープを安全に繋いで長さを延長する接続結び","スリングをポストやハーネスのアタッチメントポイントにループ状に通して固定する","固定物にロープを複数回巻き付けて制動摩擦を生成するフリクション技術","ロープ末端の繊維がほつれないよう折り返して固定する末端仕上げ処理"],a:2,e:"カウヒッチ（雌牛結び）はスリングをポール・カラビナ・ハーネスビレイループに通して固定する最も一般的な方法。非常に簡単だが、カウヒッチは方向が変わると強度低下（理論上50%以上）するため使用箇所に注意が必要。"},
+  {d:"上級",q:"「シングルロープテクニック（SRT）」において使用するメカニカルアッセンダーの代表的な組み合わせはどれか？",c:["チェストアッセンダー（ロールクランプ等）＋ハンドアッセンダー（ジュマー等）の2デバイス組み合わせ","2本の金属ブレーキバーによる摩擦のみでロープを固定する下降器システム","コードで作る摩擦結びのプルージックノットを上下に2個配置して使用する方法","2個の大型カラビナをロープに交互に通してロックしながら登降するシステム","グリグリ単体だけで昇降の両方向に対応できる多機能一体型デバイスの使用"],a:0,e:"SRTロープ登高では胸部固定式アッセンダー（ロールクランプ・クロール等）と手持ち式アッセンダー（ジュマー・スピード等）をペアで使用し、交互に体重移動させてロープを登る。単純なプルージックより効率的。"},
+  {d:"初級",q:"「スクエアノット（本結び）」を命綱・メインアンカーに使ってはいけない理由はどれか？",c:["縦引き（ロープ長軸方向の一方向荷重）では適切だが横方向の力や振動で解けやすい","荷重がかかるほど締まりが強くなり事実上解くことが不可能な永久固定になるから","荷重後に結び目が極度に固くなって現場での解除に専用工具が必要になるから","結び目の体積が大きすぎてカラビナやビレイデバイスへの通過が困難になるから","単純な構造ながら破断強度が非常に高くカッターなしには切断が困難だから"],a:0,e:"スクエアノット（本結び）は荷重方向が完全に一致している場合は安定するが、横荷重・振動・不均一な引きが加わると「グラニーノット化」して解けやすくなる。命綱・メインアンカーへの使用は危険で絶対避けるべき。"},
+],
+
+}; // end QUESTION_BANK
+
+// ═══════════════════════════════════════════════════════════════
+//  APP CONFIG
+// ═══════════════════════════════════════════════════════════════
+const CATEGORIES = [
+  { id:'firearms',   name:'銃の基本知識',     img:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFhMWUyNiIgcng9IjEwIi8+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYzhhODRiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgICA8cmVjdCB4PSIyOCIgeT0iNDQiIHdpZHRoPSI2NCIgaGVpZ2h0PSIxOCIgcng9IjMiIGZpbGw9IiMyYTJlMzgiIHN0cm9rZT0iI2M4YTg0YiIvPgogICAgPHJlY3QgeD0iMjgiIHk9IjQ0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIiBmaWxsPSIjMWExZTI2Ii8+CiAgICA8bGluZSB4MT0iNDYiIHkxPSI1MyIgeDI9IjkyIiB5Mj0iNTMiLz4KICAgIDxyZWN0IHg9IjM2IiB5PSI2MiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiByeD0iMiIgZmlsbD0iIzJhMmUzOCIvPgogICAgPHJlY3QgeD0iMzYiIHk9IjYyIiB3aWR0aD0iMjIiIGhlaWdodD0iOCIgcng9IjEiIGZpbGw9IiMxYTFlMjYiLz4KICAgIDxsaW5lIHgxPSIzNiIgeTE9Ijc0IiB4Mj0iNTgiIHkyPSI3NCIvPgogICAgPHJlY3QgeD0iODYiIHk9IjUwIiB3aWR0aD0iMTAiIGhlaWdodD0iNiIgcng9IjEiIGZpbGw9IiNjOGE4NGIiIHN0cm9rZT0ibm9uZSIvPgogICAgPGxpbmUgeDE9IjI4IiB5MT0iNDQiIHgyPSIyOCIgeTI9Ijg0Ii8+CiAgICA8bGluZSB4MT0iMjgiIHkxPSI4NCIgeDI9IjMyIiB5Mj0iODQiLz4KICAgIDxsaW5lIHgxPSI5MiIgeTE9IjQ0IiB4Mj0iOTYiIHkyPSI0MiIvPgogICAgPGxpbmUgeDE9Ijk2IiB5MT0iNDIiIHgyPSI5NiIgeTI9IjQ0Ii8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjQyIiBjeT0iNTMiIHI9IjMiIGZpbGw9IiNjOGE4NGIiIG9wYWNpdHk9IjAuNyIvPgo8L3N2Zz4=', desc:'メカニズム・各部名称・操作法' },
+  { id:'sniper',     name:'スナイパー知識',   img:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFhMWUyNiIgcng9IjEwIi8+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYzhhODRiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iMTAiIHkxPSI2MCIgeDI9IjExMCIgeTI9IjYwIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjM1IiB5PSI1MCIgd2lkdGg9IjQyIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzJhMmUzOCIgc3Ryb2tlPSIjYzhhODRiIi8+CiAgICA8bGluZSB4MT0iNTYiIHkxPSI0NCIgeDI9IjU2IiB5Mj0iNTAiLz4KICAgIDxsaW5lIHgxPSI1NiIgeTE9IjY0IiB4Mj0iNTYiIHkyPSI3MCIvPgogICAgPGxpbmUgeDE9IjUwIiB5MT0iNTciIHgyPSI0NCIgeTI9IjU3Ii8+CiAgICA8bGluZSB4MT0iNjgiIHkxPSI1NyIgeDI9IjYyIiB5Mj0iNTciLz4KICAgIDxjaXJjbGUgY3g9IjU2IiBjeT0iNTciIHI9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2M4YTg0YiIvPgogICAgPGxpbmUgeDE9IjEwIiB5MT0iNjAiIHgyPSIxOCIgeTI9IjU2Ii8+CiAgICA8bGluZSB4MT0iMTgiIHkxPSI1NiIgeDI9IjE4IiB5Mj0iNjAiLz4KICAgIDxsaW5lIHgxPSIyNCIgeTE9IjYwIiB4Mj0iMjQiIHkyPSI2NiIvPgogICAgPGxpbmUgeDE9IjI0IiB5MT0iNjYiIHgyPSIzMCIgeTI9IjY2Ii8+CiAgICA8bGluZSB4MT0iOTAiIHkxPSI1NiIgeDI9Ijk0IiB5Mj0iNTYiLz4KICAgIDxsaW5lIHgxPSI5NCIgeTE9IjU2IiB4Mj0iOTQiIHkyPSI2NCIvPgogICAgPGxpbmUgeDE9Ijk0IiB5MT0iNjQiIHgyPSI5MCIgeTI9IjY0Ii8+CiAgPC9nPgo8L3N2Zz4=', desc:'観測・スコープ・射撃技術' },
+  { id:'ballistics', name:'弾道学・弾の種類', img:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFhMWUyNiIgcng9IjEwIi8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjAsNjIpIj4KICAgIDxwYXRoIGQ9Ik0wLC0zOCBRLTE0LC0yMCAtMTQsOCBMMTQsOCBRMTQsLTIwIDAsLTM4WiIgZmlsbD0iI2M4YTg0YiIvPgogICAgPHBhdGggZD0iTTAsLTM4IFEtMTQsLTIwIC0xNCw4IEwwLDggUTAsLTIwIDAsLTM4WiIgZmlsbD0iI2U4Yzk2YiIgb3BhY2l0eT0iMC42Ii8+CiAgICA8cmVjdCB4PSItMTQiIHk9IjgiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzMCIgcng9IjIiIGZpbGw9IiM3YTYwMzAiLz4KICAgIDxyZWN0IHg9Ii0xNCIgeT0iOCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjYiIGZpbGw9IiM1YTQ4MjAiLz4KICAgIDxyZWN0IHg9Ii0xNCIgeT0iMzIiIHdpZHRoPSIyOCIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iIzRhMzgxMCIvPgogICAgPHJlY3QgeD0iLTE2IiB5PSI2IiB3aWR0aD0iMzIiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNjOGE4NGIiIG9wYWNpdHk9IjAuNSIvPgogICAgPGxpbmUgeDE9Ii04IiB5MT0iMTQiIHgyPSItOCIgeTI9IjM2IiBzdHJva2U9IiM1YTQwMjAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPGxpbmUgeDE9IjAiICB5MT0iMTQiIHgyPSIwIiAgeTI9IjM2IiBzdHJva2U9IiM1YTQwMjAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPGxpbmUgeDE9IjgiICB5MT0iMTQiIHgyPSI4IiAgeTI9IjM2IiBzdHJva2U9IiM1YTQwMjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDwvZz4KPC9zdmc+', desc:'9mm/5.56/4.6/7.62mm系中心' },
+  { id:'cqb',        name:'近接戦闘（CQB）',  img:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFhMWUyNiIgcng9IjEwIi8+CiAgPGcgZmlsbD0iI2M4YTg0YiIgb3BhY2l0eT0iMC45Ij4KICAgIDxjaXJjbGUgY3g9IjYwIiBjeT0iMjYiIHI9IjEwIi8+CiAgICA8cmVjdCB4PSI1MiIgeT0iMjIiIHdpZHRoPSIxNiIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iIzJhMmUzOCIvPgogICAgPHJlY3QgeD0iNTQiIHk9IjE0IiB3aWR0aD0iMTIiIGhlaWdodD0iNSIgcng9IjEiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzhhNzg0OCI+CiAgICA8cmVjdCB4PSI0OCIgeT0iMzgiIHdpZHRoPSIyNCIgaGVpZ2h0PSIzMCIgcng9IjMiLz4KICAgIDxyZWN0IHg9IjQ4IiB5PSIzOCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjEwIiByeD0iMiIgZmlsbD0iI2M4YTg0YiIgb3BhY2l0eT0iMC4zIi8+CiAgICA8cmVjdCB4PSIzNSIgeT0iNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyMiIgcng9IjMiLz4KICAgIDxyZWN0IHg9IjczIiB5PSI0MCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjIyIiByeD0iMyIvPgogIDwvZz4KICA8ZyBmaWxsPSIjNmE1YTM4Ij4KICAgIDxyZWN0IHg9IjUwIiB5PSI2OCIgd2lkdGg9IjkiIGhlaWdodD0iMjYiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSI2MSIgeT0iNjgiIHdpZHRoPSI5IiBoZWlnaHQ9IjI2IiByeD0iMiIvPgogIDwvZz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNjOGE4NGIiIHN0cm9rZS13aWR0aD0iMS41Ij4KICAgIDxsaW5lIHgxPSI0NCIgeTE9IjU1IiB4Mj0iMzYiIHkyPSI2MiIvPgogICAgPHJlY3QgeD0iMjgiIHk9IjU4IiB3aWR0aD0iMTAiIGhlaWdodD0iNiIgcng9IjEiIGZpbGw9IiNjOGE4NGIiIHN0cm9rZT0ibm9uZSIgb3BhY2l0eT0iMC44Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjUyIiB5PSI0NCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjEwIiByeD0iMSIgZmlsbD0iIzJhMmUzOCIgc3Ryb2tlPSIjYzhhODRiIiBzdHJva2Utd2lkdGg9IjEiLz4KPC9zdmc+', desc:'室内戦・海外部隊用語・戦術' },
+  { id:'medic',      name:'コンバットメディック', img:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFhMWUyNiIgcng9IjEwIi8+CiAgPHJlY3QgeD0iMjIiIHk9IjIyIiB3aWR0aD0iNzYiIGhlaWdodD0iNzYiIHJ4PSIxMCIgZmlsbD0iIzJhMGEwYSIgc3Ryb2tlPSIjZDQ1YTVhIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxyZWN0IHg9IjQ2IiB5PSIzMCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjYwIiByeD0iNCIgZmlsbD0iI2Q0NWE1YSIvPgogIDxyZWN0IHg9IjMwIiB5PSI0NiIgd2lkdGg9IjYwIiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2Q0NWE1YSIvPgogIDxyZWN0IHg9IjQ4IiB5PSIzMiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjU2IiByeD0iMiIgZmlsbD0iI2U4NjA2MCIgb3BhY2l0eT0iMC40Ii8+CiAgPHJlY3QgeD0iMzIiIHk9IjQ4IiB3aWR0aD0iNTYiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjZTg2MDYwIiBvcGFjaXR5PSIwLjQiLz4KPC9zdmc+', desc:'TCCC・止血・MARCH処置' },
+  { id:'rope',       name:'ロープレスキュー', img:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFhMWUyNiIgcng9IjEwIi8+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYzhhODRiIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogICAgPGVsbGlwc2UgY3g9IjYwIiBjeT0iNjAiIHJ4PSIyOCIgcnk9IjQyIiBzdHJva2Utd2lkdGg9IjgiLz4KICAgIDxlbGxpcHNlIGN4PSI2MCIgY3k9IjYwIiByeD0iMjAiIHJ5PSIzNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2U9IiMwYTBjMGYiIGZpbGw9Im5vbmUiLz4KICAgIDxyZWN0IHg9IjUyIiB5PSIxNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjEwIiByeD0iNCIgZmlsbD0iIzJhMmUzOCIgc3Ryb2tlPSIjYzhhODRiIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogICAgPGxpbmUgeDE9IjUyIiB5MT0iMTkiIHgyPSI0NCIgeTI9IjE5IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDxsaW5lIHgxPSI2OCIgeTE9IjE5IiB4Mj0iNzYiIHkyPSIxOSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8cmVjdCB4PSI1MCIgeT0iOTYiIHdpZHRoPSIyMCIgaGVpZ2h0PSI4IiByeD0iMyIgZmlsbD0iIzNhM2U0OCIgc3Ryb2tlPSIjYzhhODRiIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPGxpbmUgeDE9IjU1IiB5MT0iMTAwIiB4Mj0iNjUiIHkyPSIxMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2U9IiNlOGM5NmIiLz4KICA8L2c+CiAgPGVsbGlwc2UgY3g9IjYwIiBjeT0iNjAiIHJ4PSIyOCIgcnk9IjQyIiBmaWxsPSJub25lIiBzdHJva2U9IiNjOGE4NGIiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLW9wYWNpdHk9IjAuMTUiLz4KPC9zdmc+', desc:'ノット・破断強度・システム' },
+];
+
+// ─────────────────────────────────────────────────────────────
+let currentCat = null, questions = [], currentQ = 0, score = 0, answered = false;
+
+function loadStats() { try { return JSON.parse(localStorage.getItem('tq_stats')||'{}'); } catch { return {}; } }
+function saveStats(s) { localStorage.setItem('tq_stats', JSON.stringify(s)); }
+
+function recordSession(catId, correct, total) {
+  const s = loadStats();
+  const today = new Date().toISOString().slice(0,10);
+  if (!s.sessions) s.sessions = [];
+  if (!s.catStats) s.catStats = {};
+  s.sessions.push({ date:today, catId, correct, total });
+  if (!s.catStats[catId]) s.catStats[catId] = { sessions:0, totalCorrect:0, totalQ:0 };
+  s.catStats[catId].sessions++;
+  s.catStats[catId].totalCorrect += correct;
+  s.catStats[catId].totalQ += total;
+  saveStats(s);
+}
+
+function getWeekStats() {
+  const s = loadStats();
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay()+6)%7));
+  monday.setHours(0,0,0,0);
+  const ws = (s.sessions||[]).filter(se => new Date(se.date) >= monday);
+  const totalQ = ws.reduce((a,b)=>a+b.total,0);
+  const totalC = ws.reduce((a,b)=>a+b.correct,0);
+  return { totalQ, acc: totalQ>0 ? Math.round(totalC/totalQ*100) : null, sessions: ws };
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const ni = document.getElementById('nav-'+name);
+  if (ni) ni.classList.add('active');
+  document.getElementById('nav-bar').style.display = (name==='quiz')?'none':'flex';
+  if (name==='home') updateHomeStats();
+  if (name==='stats') renderStats();
+}
+
+function updateHomeStats() {
+  const w = getWeekStats();
+  document.getElementById('stat-week-q').textContent = w.totalQ;
+  document.getElementById('stat-week-acc').textContent = w.acc!=null ? w.acc+'%' : '—';
+  const s = loadStats();
+  document.getElementById('stat-total-sessions').textContent = (s.sessions||[]).length;
+  const cs = s.catStats||{};
+  CATEGORIES.forEach(cat => {
+    const el = document.querySelector(`[data-cat="${cat.id}"] .cat-score-num`);
+    if (el) {
+      const c = cs[cat.id];
+      el.textContent = (c && c.totalQ>0) ? Math.round(c.totalCorrect/c.totalQ*100)+'%' : '—';
+    }
+  });
+}
+
+function renderHome() {
+  document.getElementById('category-list').innerHTML = CATEGORIES.map(cat => {
+    const count = (QUESTION_BANK[cat.id]||[]).length;
+    return `<div class="category-card" data-cat="${cat.id}" onclick="startQuiz('${cat.id}')">
+      <div class="cat-icon"><img src="${cat.img}" alt="${cat.name}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"></div>
+      <div class="cat-info">
+        <div class="cat-name">${cat.name}</div>
+        <div class="cat-desc">${cat.desc}</div>
+        <div class="cat-q-count">問題数：${count}問ストック</div>
+      </div>
+      <div class="cat-score">
+        <div class="cat-score-num">—</div>
+        <div class="cat-score-label">正答率</div>
+      </div>
+      <div class="cat-chevron">›</div>
+    </div>`;
+  }).join('');
+  updateHomeStats();
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function startQuiz(catId) {
+  currentCat = catId;
+  currentQ = 0; score = 0; answered = false;
+  const bank = QUESTION_BANK[catId] || [];
+  questions = shuffle(bank).slice(0, 10);
+  showPage('quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const cat = CATEGORIES.find(c=>c.id===currentCat);
+  answered = false;
+  const catIcons = {firearms:'🔫',sniper:'🎯',ballistics:'💥',cqb:'⚔️',medic:'🩺',rope:'🪢'};
+  document.getElementById('quiz-cat-label').textContent = (catIcons[cat.id]||'▣')+' '+cat.name;
+  document.getElementById('quiz-counter').textContent = `${currentQ+1} / 10`;
+  document.getElementById('progress-fill').style.width = `${(currentQ+1)/10*100}%`;
+  const dt = document.getElementById('diff-tag');
+  dt.textContent = q.d;
+  dt.className = 'difficulty-tag '+(q.d==='初級'?'diff-easy':q.d==='中級'?'diff-mid':'diff-hard');
+  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('explanation-wrap').classList.remove('show');
+  document.getElementById('next-btn-wrap').classList.remove('show');
+  const nums = ['A','B','C','D','E'];
+  document.getElementById('choices-wrap').innerHTML = q.c.map((ch,i)=>
+    `<button class="choice-btn" onclick="selectAnswer(${i})" id="choice-${i}">
+      <div class="choice-num">${nums[i]}</div>
+      <div class="choice-text">${ch}</div>
+    </button>`).join('');
+  document.getElementById('quiz-body').scrollTop = 0;
+}
+
+function selectAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  const q = questions[currentQ];
+  for (let i=0;i<5;i++) {
+    const btn = document.getElementById('choice-'+i);
+    if (!btn) continue;
+    if (i===q.a) btn.classList.add('correct');
+    else if (i===idx) btn.classList.add('wrong');
+    else btn.classList.add('disabled');
+  }
+  if (idx===q.a) score++;
+  document.getElementById('explanation-text').textContent = q.e;
+  document.getElementById('explanation-wrap').classList.add('show');
+  document.getElementById('next-btn').textContent = currentQ<9 ? '次の問題 →' : '結果を見る';
+  document.getElementById('next-btn-wrap').classList.add('show');
+  setTimeout(()=>{ document.getElementById('explanation-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}); }, 150);
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ>=10) showResult();
+  else { renderQuestion(); document.getElementById('quiz-body').scrollTo({top:0,behavior:'smooth'}); }
+}
+
+function confirmQuit() { if (confirm('クイズを中断しますか？')) showPage('home'); }
+
+function showResult() {
+  recordSession(currentCat, score, 10);
+  const cat = CATEGORIES.find(c=>c.id===currentCat);
+  document.getElementById('result-cat-label').textContent = cat.icon+' '+cat.name;
+  document.getElementById('result-score-num').textContent = score;
+  const offset = 439.82*(1-score/10);
+  setTimeout(()=>{ document.getElementById('ring-fill').style.strokeDashoffset = offset; }, 100);
+  const grade = score>=9?'S':score>=7?'A':score>=5?'B':score>=3?'C':'D';
+  const comment = score>=9?'完璧な理解！':score>=7?'優秀です！':score>=5?'良い成績です':score>=3?'もう少し頑張ろう':'復習が必要です';
+  const s = loadStats();
+  const cs = (s.catStats||{})[currentCat];
+  const avgPct = cs && cs.totalQ>0 ? Math.round(cs.totalCorrect/cs.totalQ*100) : null;
+  document.getElementById('result-breakdown').innerHTML = `
+    <div class="breakdown-row"><span class="breakdown-label">今回のスコア</span><span class="breakdown-val">${score} / 10</span></div>
+    <div class="breakdown-row"><span class="breakdown-label">正答率</span><span class="breakdown-val">${score*10}%</span></div>
+    <div class="breakdown-row"><span class="breakdown-label">評価</span><span class="breakdown-val" style="color:var(--accent)">${grade} — ${comment}</span></div>
+    <div class="breakdown-row"><span class="breakdown-label">累計正答率</span><span class="breakdown-val">${avgPct!=null?avgPct+'%':'—'}</span></div>`;
+  showPage('result');
+}
+
+function retryCategory() { startQuiz(currentCat); }
+
+function renderStats() {
+  const w = getWeekStats();
+  const s = loadStats();
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate()-((now.getDay()+6)%7));
+  monday.setHours(0,0,0,0);
+  const dayLabels=['月','火','水','木','金','土','日'];
+  const actMap={};
+  (w.sessions||[]).forEach(se=>{ actMap[se.date]=(actMap[se.date]||0)+se.total; });
+  let grid='';
+  for(let i=0;i<7;i++){
+    const d=new Date(monday); d.setDate(monday.getDate()+i);
+    const key=d.toISOString().slice(0,10);
+    const cnt=actMap[key]||0;
+    const today=key===now.toISOString().slice(0,10);
+    grid+=`<div class="week-day"><div class="week-day-label">${dayLabels[i]}</div>
+      <div class="week-day-dot ${cnt>0?'has-activity':''}" style="${today?'border-color:var(--accent2);':''}">${cnt>0?cnt:''}</div></div>`;
+  }
+  document.getElementById('week-grid').innerHTML = grid;
+  const catStats = s.catStats||{};
+  document.getElementById('cat-stats-list').innerHTML = CATEGORIES.map(cat=>{
+    const cs=catStats[cat.id];
+    const pct=cs&&cs.totalQ>0?Math.round(cs.totalCorrect/cs.totalQ*100):0;
+    const has=cs&&cs.totalQ>0;
+    const icons={firearms:'🔫',sniper:'🎯',ballistics:'💥',cqb:'⚔️',medic:'🩺',rope:'🪢'};
+    return `<div class="cat-stat-row">
+      <div class="cat-stat-top"><div class="cat-stat-name">${icons[cat.id]||'▣'} ${cat.name}</div>
+      <div class="cat-stat-pct">${has?pct+'%':'—'}</div></div>
+      <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${has?pct:0}%"></div></div>
+      <div class="cat-stat-sub">${has?cs.totalQ+'問挑戦 / '+cs.sessions+'セッション':'未挑戦'}</div></div>`;
+  }).join('');
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── SPLASH ──
+function dismissSplash() {
+  const s = document.getElementById('splash');
+  s.classList.add('hide');
+  setTimeout(() => { s.style.display = 'none'; }, 600);
+}
+
+(function() {
+  const el = document.getElementById('splash-pct');
+  let pct = 0;
+  const steps = [
+    {target:30, delay:800,  duration:400},
+    {target:65, delay:1200, duration:300},
+    {target:90, delay:1600, duration:300},
+    {target:100,delay:2000, duration:200},
+  ];
+  steps.forEach(({target, delay, duration}) => {
+    const start = pct;
+    setTimeout(() => {
+      const startTime = Date.now();
+      const tick = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const current = Math.round(start + (target - start) * progress);
+        el.textContent = String(current).padStart(3,'0') + '%';
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      tick();
+    }, delay);
+    pct = target;
+  });
+})();
+
+setTimeout(dismissSplash, 3500);
+
+renderHome();
+</script>
+</body>
+</html>
